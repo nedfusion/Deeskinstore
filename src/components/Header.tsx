@@ -84,7 +84,7 @@ const Header: React.FC<HeaderProps> = ({ currentPage, onNavigate }) => {
           <div className="flex justify-between items-center text-sm">
             <span>Free shipping on orders over ₦15,000 | Business enquiries: business@deeskinstore.com</span>
             <div className="hidden md:flex items-center space-x-4">
-              <span>Need help? Email: support@deeskinstore.com</span>
+              <span>Need help? Call: +2347079228195 | Email: support@deeskinstore.com</span>
               <div className="flex items-center space-x-2">
                 <span>Follow us:</span>
                 <div className="flex space-x-2">
