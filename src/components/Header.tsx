@@ -75,6 +75,7 @@ const Header: React.FC<HeaderProps> = ({ currentPage, onNavigate }) => {
     { name: 'CONSULTATION', page: 'consultation' },
     { name: 'GIFT CARDS', page: 'gift-cards' },
     { name: 'BLOG', page: 'blog' },
+    { name: 'FAQ', page: 'faq' },
   ];
 
   return (

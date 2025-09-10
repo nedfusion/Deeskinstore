@@ -12,9 +12,10 @@ import ConsultationPage from './pages/ConsultationPage';
 import GiftCardPage from './pages/GiftCardPage';
 import BlogPage from './pages/BlogPage';
 import AboutPage from './pages/AboutPage';
+import FAQPage from './pages/FAQPage';
 import { Product } from './types';
 
-type Page = 'home' | 'about' | 'products' | 'product-detail' | 'cart' | 'auth' | 'account' | 'consultation' | 'gift-cards' | 'blog' | 'checkout';
+type Page = 'home' | 'about' | 'products' | 'product-detail' | 'cart' | 'auth' | 'account' | 'consultation' | 'gift-cards' | 'blog' | 'faq' | 'checkout';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
@@ -94,6 +95,12 @@ function App() {
       case 'blog':
         return (
           <BlogPage
+            onBack={handleBack}
+          />
+        );
+      case 'faq':
+        return (
+          <FAQPage
             onBack={handleBack}
           />
         );
