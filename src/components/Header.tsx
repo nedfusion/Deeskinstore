@@ -108,7 +108,7 @@ const Header: React.FC<HeaderProps> = ({ currentPage, onNavigate }) => {
               <img
                 src="/Deeskinstore Logo.png"
                 alt="DeeSkinStore"
-                className="h-16 w-auto hover:opacity-80 transition-opacity"
+                className="h-20 w-auto hover:opacity-80 transition-opacity"
               />
             </button>
           </div>
