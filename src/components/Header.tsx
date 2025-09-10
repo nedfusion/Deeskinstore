@@ -82,15 +82,14 @@ const Header: React.FC<HeaderProps> = ({ currentPage, onNavigate }) => {
       <div className="bg-[#0d0499] text-white py-2">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center text-sm">
-            <span>Free shipping on orders over ₦15,000</span>
+            <span>Free shipping on orders over ₦15,000 | Business enquiries: business@deeskinstore.com</span>
             <div className="hidden md:flex items-center space-x-4">
-              <span>Need help? Call: +234 (0) 123 456 789</span>
+              <span>Need help? Email: support@deeskinstore.com</span>
               <div className="flex items-center space-x-2">
                 <span>Follow us:</span>
                 <div className="flex space-x-2">
-                  <a href="#" className="hover:text-[#c6f2f4] transition-colors">FB</a>
-                  <a href="#" className="hover:text-[#c6f2f4] transition-colors">IG</a>
-                  <a href="#" className="hover:text-[#c6f2f4] transition-colors">TW</a>
+                  <a href="https://instagram.com/deeskinstore" target="_blank" rel="noopener noreferrer" className="hover:text-[#c6f2f4] transition-colors">IG</a>
+                  <a href="https://twitter.com/deeskinstore" target="_blank" rel="noopener noreferrer" className="hover:text-[#c6f2f4] transition-colors">TW</a>
                 </div>
               </div>
             </div>

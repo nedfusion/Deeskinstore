@@ -16,10 +16,10 @@ const Footer: React.FC = () => {
               <a href="#" className="text-gray-300 hover:text-[#c6f2f4] transition-colors">
                 <Facebook className="h-5 w-5" />
               </a>
-              <a href="#" className="text-gray-300 hover:text-[#c6f2f4] transition-colors">
+              <a href="https://instagram.com/deeskinstore" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-[#c6f2f4] transition-colors">
                 <Instagram className="h-5 w-5" />
               </a>
-              <a href="#" className="text-gray-300 hover:text-[#c6f2f4] transition-colors">
+              <a href="https://twitter.com/deeskinstore" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-[#c6f2f4] transition-colors">
                 <Twitter className="h-5 w-5" />
               </a>
             </div>
@@ -63,7 +63,7 @@ const Footer: React.FC = () => {
               </div>
               <div className="flex items-center">
                 <Mail className="h-5 w-5 mr-2 flex-shrink-0" />
-                <span>hello@deeskinstore.com</span>
+                <span>support@deeskinstore.com</span>
               </div>
             </div>
             
