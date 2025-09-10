@@ -106,9 +106,9 @@ const Header: React.FC<HeaderProps> = ({ currentPage, onNavigate }) => {
           <div className="flex-shrink-0">
             <button onClick={() => onNavigate('home')} className="flex items-center">
               <img
-                src="/Deeskinstore Logo.png"
+                src="/Deeskinstore_Logo-removebg-preview.png"
                 alt="DeeSkinStore"
-                className="h-20 w-auto hover:opacity-80 transition-opacity"
+                className="h-24 w-auto hover:opacity-80 transition-opacity"
               />
             </button>
           </div>
