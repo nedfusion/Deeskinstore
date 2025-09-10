@@ -11,9 +11,10 @@ import AuthPage from './pages/AuthPage';
 import ConsultationPage from './pages/ConsultationPage';
 import GiftCardPage from './pages/GiftCardPage';
 import BlogPage from './pages/BlogPage';
+import AboutPage from './pages/AboutPage';
 import { Product } from './types';
 
-type Page = 'home' | 'products' | 'product-detail' | 'cart' | 'auth' | 'account' | 'consultation' | 'gift-cards' | 'blog' | 'checkout';
+type Page = 'home' | 'about' | 'products' | 'product-detail' | 'cart' | 'auth' | 'account' | 'consultation' | 'gift-cards' | 'blog' | 'checkout';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
@@ -44,6 +45,12 @@ function App() {
           <HomePage
             onNavigate={handleNavigate}
             onProductClick={handleProductClick}
+          />
+        );
+      case 'about':
+        return (
+          <AboutPage
+            onBack={handleBack}
           />
         );
       case 'products':
