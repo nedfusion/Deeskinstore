@@ -21,87 +21,87 @@ const FAQPage: React.FC<FAQPageProps> = ({ onBack }) => {
   const faqData: FAQItem[] = [
     {
       id: '1',
-      question: 'What makes Dee Skin Store different from other skincare retailers?',
-      answer: 'Dee Skin Store is led by a dedicated pharmacist with a Double Master\'s Degree in Cosmetic and Dermatological Sciences. We offer a curated selection of safe, effective, and handpicked skincare products backed by science, along with personalized skin health consultations.',
+      question: 'What is Dee Skin Store?',
+      answer: 'Dee Skin Store is your one-stop online personal care store dedicated to providing you with authentic, high-quality skincare products to help you achieve healthier, more radiant skin. We offer a wide range of products from the Americas, Europe and Asia and are consistently improving our offerings. We also offer virtual skincare consultations with a professional to provide you with tailored skincare recommendations for your skin concerns.',
       category: 'About Us'
     },
     {
       id: '2',
-      question: 'Do you offer skin consultations?',
-      answer: 'Yes! We offer personalized skin health consultations to help you choose the right products for your specific skin type and concerns. Our expert pharmacist will guide you through your skincare journey.',
-      category: 'Services'
+      question: 'How do I place an order?',
+      answer: 'To place an order, simply browse our website, www.deeskinstore.com, select the products you want, add them to your cart, and proceed to checkout. Follow the on-screen instructions to complete your purchase. If you have issues doing this, kindly send a DM via Instagram to @deeskinstore or email payment@deeskinstore.com',
+      category: 'Orders & Checkout'
     },
     {
       id: '3',
       question: 'What payment methods do you accept?',
-      answer: 'We accept various payment methods including bank transfers, card payments, and mobile money. Specific banking details and payment instructions will be provided during checkout.',
+      answer: 'Our secure online checkout platform is Paystack. This is the faster way to get your order fulfilled because we don\'t need to confirm payments manually. If you decide to pay with a direct bank transfer, kindly select the \'Bank Transfer\' option at checkout and we will manually confirm your order. After this stage, kindly do the transfer only to: Bank account: 6500489174, Bank name: Providus Bank, Account name: Uba Favour Chidinma. After transfer, send an email to payment@deeskinstore.com with Email subject: Order Number and Email body: Order number, Account name (from where payment was made) and attach your receipt of payment. Please be wary of any fraudulent/scam accounts as these are our only accepted payment methods currently.',
       category: 'Payment & Billing'
     },
     {
       id: '4',
-      question: 'Do you ship nationwide in Nigeria?',
-      answer: 'Yes, we ship across Nigeria from our base in Lagos. Shipping costs and delivery times vary depending on your location. Free shipping is available on orders over ₦15,000.',
+      question: 'What is your shipping policy?',
+      answer: 'We offer standard shipping options with trusted logistics companies across Nigeria. Shipping times and costs may vary depending on your location and are stated on the checkout page so you can select which one you prefer.',
       category: 'Shipping & Delivery'
     },
     {
       id: '5',
-      question: 'How long does shipping take?',
-      answer: 'Shipping times vary by location: Lagos (1-2 business days), other major cities (2-4 business days), remote areas (3-7 business days). You\'ll receive tracking information once your order ships.',
+      question: 'Where do you currently ship to?',
+      answer: 'We currently offer shipping across Nigeria. During checkout, you can select your state and location, and shipping options and costs will be displayed accordingly.',
       category: 'Shipping & Delivery'
     },
     {
       id: '6',
-      question: 'Are your products authentic?',
-      answer: 'Absolutely! All our products are 100% authentic and sourced directly from authorized distributors and manufacturers. We guarantee the authenticity of every product we sell.',
-      category: 'Products'
-    },
-    {
-      id: '7',
-      question: 'Can I return or exchange products?',
-      answer: 'Yes, we have a comprehensive return policy. Please see our detailed Return Policy section below for complete terms and conditions.',
+      question: 'What is your return policy?',
+      answer: 'In the rare event that you receive a damaged or defective product, please contact our customer support team via email at orders@deeskinstore.com within 24 hours of receiving your order. We will work with you to resolve the issue promptly. Please check our Return Policy page for more detailed information.',
       category: 'Returns & Exchanges'
     },
     {
+      id: '7',
+      question: 'Can I get personalized skincare recommendations?',
+      answer: 'Absolutely! We offer skincare consultations with our pharmacist and cosmetic scientist to help you discover products tailored to your skin type and concerns. It\'s a great way to find products that are right for you. Book a session here.',
+      category: 'Services'
+    },
+    {
       id: '8',
-      question: 'How do I track my order?',
-      answer: 'Once your order ships, you\'ll receive a tracking number via email. You can use this to track your package through our shipping partner\'s website.',
+      question: 'What if my package arrives damaged or with missing items?',
+      answer: 'If your order arrives damaged or with missing items, please contact our customer support team via orders@deeskinstore.com within 24 hours of receiving the package, and we will assist you in resolving the issue.',
       category: 'Orders & Tracking'
     },
     {
       id: '9',
-      question: 'Do you offer gift cards?',
-      answer: 'Yes! We offer digital gift cards that can be purchased and sent directly to the recipient via email. Gift cards never expire and can be used for any products on our website.',
-      category: 'Gift Cards'
+      question: 'Do you offer skincare tips and advice?',
+      answer: 'Yes, we provide valuable skincare tips and advice through our blog, Instagram and newsletter. You can also book a consultation here for tailored recommendations.',
+      category: 'Services'
     },
     {
       id: '10',
-      question: 'How do I create an account?',
-      answer: 'You can create an account by clicking the user icon in the top navigation and selecting "Sign up". You\'ll need to provide your email, name, and create a password.',
-      category: 'Account & Profile'
+      question: 'Can I stockpile orders?',
+      answer: 'Yes, you can stockpile orders in our warehouse for a period up to 28 days after placing your order. Ensure to select the \'Stockpile\' option at checkout and leave your contact details. Any time after this period will require a holding charge of 1000 Naira per week.',
+      category: 'Orders & Checkout'
     },
     {
       id: '11',
-      question: 'What if I have sensitive skin?',
-      answer: 'We have a dedicated section for sensitive skin products and can provide personalized recommendations through our consultation service. Always patch test new products before full application.',
-      category: 'Skin Concerns'
-    },
-    {
-      id: '12',
-      question: 'Do you offer bulk or wholesale pricing?',
-      answer: 'For bulk orders or wholesale inquiries, please contact us at business@deeskinstore.com. We offer special pricing for qualified businesses and large orders.',
-      category: 'Business & Wholesale'
-    },
-    {
-      id: '13',
-      question: 'How can I contact customer support?',
-      answer: 'You can reach our customer support team via email at support@deeskinstore.com or call us at +2347079228195. We typically respond to emails within 24 hours.',
+      question: 'How can I contact your customer support?',
+      answer: 'You can contact our customer support team through the Contact Us page on our website, via email at support@deeskinstore.com, or via Instagram DM @deeskinstore. We are here to assist you with any questions or concerns.',
       category: 'Contact & Support'
     },
     {
+      id: '12',
+      question: 'Are there any promotions or discounts available?',
+      answer: 'We periodically have special promotions and discounts. Be sure to subscribe to our newsletter, check the website from time to time, and follow us on social media to stay updated on the latest deals and offers.',
+      category: 'Promotions & Discounts'
+    },
+    {
+      id: '13',
+      question: 'Are the ingredients in your products safe for all skin types?',
+      answer: 'We offer authentic products suitable for various skin types, including sensitive skin. You can find descriptions of each product on our website. Kindly bear in mind that different people react differently to products, so kindly do some research ahead of time to minimize this risk.',
+      category: 'Products & Safety'
+    },
+    {
       id: '14',
-      question: 'Do you have a physical store location?',
-      answer: 'We are primarily an online retailer based in Lagos, Nigeria. For in-person consultations or product pickups, please contact us to arrange an appointment.',
-      category: 'Store Information'
+      question: 'How can I stay informed about new product releases?',
+      answer: 'To stay updated on our new product releases and skincare trends, subscribe to our newsletter and follow us on social media (@deeskinstore on all platforms.) We regularly share exciting updates and product launches.',
+      category: 'Updates & News'
     }
   ];
 
@@ -262,22 +262,52 @@ const FAQPage: React.FC<FAQPageProps> = ({ onBack }) => {
             Return Policy
           </h2>
           <div className="prose prose-lg max-w-none">
-            <p className="text-gray-700 leading-relaxed mb-4">
-              <strong>Please replace this placeholder with your complete Return Policy content.</strong>
+            <p className="text-gray-700 leading-relaxed mb-6">
+              At Dee Skin Store, we prioritize transparency and clear communication at all times. Please read the following carefully, as we do not accept returns on any products or orders unless explicitly mentioned otherwise due to certain legal or regulatory requirements. By making a purchase on our website, you agree to abide by this policy.
             </p>
+            
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">Overall Return Policy</h3>
             <p className="text-gray-700 leading-relaxed mb-4">
-              Your return policy should include:
+              We do not offer returns, refunds, or exchanges for any products purchased from our store, except in cases where they are defective or damaged on or before delivery.
             </p>
-            <ul className="list-disc list-inside text-gray-700 space-y-2 mb-6">
-              <li>Return timeframe (e.g., 30 days)</li>
-              <li>Condition requirements for returns</li>
-              <li>Items that cannot be returned</li>
-              <li>Return process and instructions</li>
-              <li>Refund processing times</li>
-              <li>Who pays for return shipping</li>
-              <li>Exchange policies</li>
-              <li>Contact information for returns</li>
-            </ul>
+            
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">Product Descriptions</h3>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              We make every effort to provide accurate product descriptions, images, and information to help you make an informed purchase decision. In addition, we advise that you do your research or get personalized recommendations.
+            </p>
+            
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">Damaged or Defective Products</h3>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              In the rare event that you receive a damaged or defective product, please contact our customer support team via email at <a href="mailto:orders@deeskinstore.com" className="text-[#0d0499] hover:underline">orders@deeskinstore.com</a> within 24 hours of receiving your order. We will work with you to resolve the issue promptly.
+            </p>
+            
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">Order Cancellation</h3>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              Once an order is placed and confirmed, it cannot be cancelled or modified. Please review your order carefully before completing the purchase.
+            </p>
+            
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">Lost or Stolen Packages</h3>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              We are not responsible for lost or stolen packages once they have been marked as delivered by the shipping carrier. Please ensure that your shipping address is accurate and secure.
+            </p>
+            
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">Refused Deliveries</h3>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              Refusing a delivery does not constitute a valid return. If you refuse delivery of an order, you will still be responsible for the original shipping charges and any return shipping fees incurred.
+            </p>
+            
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">Legal Rights</h3>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              This return policy does not affect any legal rights you may have under applicable consumer protection laws.
+            </p>
+            
+            <p className="text-gray-700 leading-relaxed mb-4">
+              While we strive to provide high-quality products and excellent customer service, our return policy is in place to maintain the integrity and hygiene of our products. We appreciate your understanding and support in this matter.
+            </p>
+            
+            <p className="text-gray-700 leading-relaxed">
+              Dee Skin Store reserves the right to update or modify this return policy, at any time without prior notice. Please check our website for the most up-to-date policy information.
+            </p>
           </div>
         </div>
 
