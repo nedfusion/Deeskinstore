@@ -104,11 +104,12 @@ const Header: React.FC<HeaderProps> = ({ currentPage, onNavigate }) => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <button
-              onClick={() => onNavigate('home')}
-              className="text-2xl font-bold text-[#0d0499] hover:text-[#c6f2f4] transition-colors"
-            >
-              DeeSkinStore
+            <button onClick={() => onNavigate('home')} className="flex items-center">
+              <img
+                src="/Deeskinstore Logo.png"
+                alt="DeeSkinStore"
+                className="h-12 w-auto hover:opacity-80 transition-opacity"
+              />
             </button>
           </div>
 
