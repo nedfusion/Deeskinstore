@@ -1,0 +1,40 @@
+import { BlogPost } from '../types';
+
+export const blogPosts: BlogPost[] = [
+  {
+    id: '1',
+    title: 'The Complete Guide to Building a Skincare Routine',
+    slug: 'complete-guide-skincare-routine',
+    excerpt: 'Learn how to create an effective skincare routine that works for your unique skin type and concerns.',
+    content: 'Building an effective skincare routine is the foundation of healthy, glowing skin...',
+    author: 'Dr. Sarah Johnson',
+    publishedAt: new Date('2024-01-15'),
+    featuredImage: 'https://images.pexels.com/photos/3785147/pexels-photo-3785147.jpeg?auto=compress&cs=tinysrgb&w=600',
+    tags: ['Skincare Routine', 'Beginner Tips', 'Skin Health'],
+    category: 'Education',
+  },
+  {
+    id: '2',
+    title: 'Understanding Your Skin Type: A Comprehensive Guide',
+    slug: 'understanding-skin-types',
+    excerpt: 'Discover your skin type and learn how to choose products that will work best for you.',
+    content: 'Understanding your skin type is crucial for selecting the right products...',
+    author: 'Emma Wilson',
+    publishedAt: new Date('2024-01-10'),
+    featuredImage: 'https://images.pexels.com/photos/3762879/pexels-photo-3762879.jpeg?auto=compress&cs=tinysrgb&w=600',
+    tags: ['Skin Types', 'Product Selection', 'Skincare Tips'],
+    category: 'Education',
+  },
+  {
+    id: '3',
+    title: 'The Power of Vitamin C in Skincare',
+    slug: 'vitamin-c-skincare-benefits',
+    excerpt: 'Explore the amazing benefits of Vitamin C and how to incorporate it into your routine.',
+    content: 'Vitamin C is one of the most powerful antioxidants in skincare...',
+    author: 'Dr. Michael Chen',
+    publishedAt: new Date('2024-01-05'),
+    featuredImage: 'https://images.pexels.com/photos/4465121/pexels-photo-4465121.jpeg?auto=compress&cs=tinysrgb&w=600',
+    tags: ['Vitamin C', 'Antioxidants', 'Anti-Aging'],
+    category: 'Ingredients',
+  },
+];
