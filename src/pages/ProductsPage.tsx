@@ -4,6 +4,10 @@ import { products } from '../data/products';
 import ProductCard from '../components/ProductCard';
 import { Product } from '../types';
 
+// Debug: Log products to console
+console.log('Products loaded:', products);
+console.log('Number of products:', products.length);
+
 interface ProductsPageProps {
   onProductClick: (product: Product) => void;
 }
@@ -45,15 +49,19 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onProductClick }) => {
     let filtered = products.filter(product => {
       const categoryMatch = selectedCategory === 'all' || 
         product.categories.some(cat => cat.toLowerCase().includes(selectedCategory.toLowerCase())) ||
-        (selectedCategory === 'Under 10K' && product.price < 30);
+        (selectedCategory === 'Under 10K' && product.price < 10000);
       
       const brandMatch = selectedBrand === 'all' || product.brand === selectedBrand;
       const skinConcernMatch = selectedSkinConcern === 'all' || 
         product.skinConcerns.includes(selectedSkinConcern);
-      const priceMatch = product.price >= priceRange.min && product.price <= priceRange.max;
+      const priceMatch = product.price >= (priceRange.min * 1000) && 
+        (priceRange.max >= 100 || product.price <= (priceRange.max * 1000));
 
       return categoryMatch && brandMatch && skinConcernMatch && priceMatch;
     });
+    
+    console.log('Filtered products:', filtered);
+    console.log('Filter criteria:', { selectedCategory, selectedBrand, selectedSkinConcern, priceRange });
 
     // Sort products
     switch (sortBy) {
