@@ -47,8 +47,8 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onProductClick }) => {
             </div>
             <div className="relative">
               <img
-                src="https://images.pexels.com/photos/3762879/pexels-photo-3762879.jpeg?auto=compress&cs=tinysrgb&w=800"
-                alt="Skincare Products"
+                src="/Banner.png"
+                alt="DeeSkinStore Banner"
                 className="rounded-2xl shadow-2xl"
               />
             </div>
