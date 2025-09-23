@@ -173,6 +173,14 @@ const Header: React.FC<HeaderProps> = ({ currentPage, onNavigate }) => {
                 )}
               </div>
             ))}
+            
+            {/* Admin Link */}
+            <button
+              onClick={() => onNavigate('admin')}
+              className="text-gray-700 hover:text-[#0d0499] font-medium transition-colors text-sm"
+            >
+              ADMIN
+            </button>
           </nav>
 
           {/* Right side icons */}
