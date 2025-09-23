@@ -21,7 +21,7 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onProductClick }) => {
   const [sortBy, setSortBy] = useState('popular');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  const categories = ['all', 'Face', 'Bath and Body', 'Asian Skincare', 'African Skincare', 'Under 10K'];
+  const categories = ['all', ...Array.from(new Set(products.flatMap(p => p.categories)))];
   
   const faceSubcategories = [
     'Cleansers/Washes', 'Toners', 'Serums', 'Exfoliants', 
@@ -48,8 +48,11 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onProductClick }) => {
   const filteredProducts = useMemo(() => {
     let filtered = products.filter(product => {
       const categoryMatch = selectedCategory === 'all' || 
-        product.categories.some(cat => cat.toLowerCase().includes(selectedCategory.toLowerCase())) ||
-        (selectedCategory === 'Under 10K' && product.price < 10000);
+        product.categories.some(cat => 
+          cat.toLowerCase().includes(selectedCategory.toLowerCase()) ||
+          selectedCategory.toLowerCase().includes(cat.toLowerCase())
+        ) ||
+        (selectedCategory.toLowerCase().includes('under 10k') && product.price < 10000);
       
       const brandMatch = selectedBrand === 'all' || product.brand === selectedBrand;
       const skinConcernMatch = selectedSkinConcern === 'all' || 
@@ -60,8 +63,10 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onProductClick }) => {
       return categoryMatch && brandMatch && skinConcernMatch && priceMatch;
     });
     
-    console.log('Filtered products:', filtered);
-    console.log('Filter criteria:', { selectedCategory, selectedBrand, selectedSkinConcern, priceRange });
+    // If no filters applied, show all products
+    if (selectedCategory === 'all' && selectedBrand === 'all' && selectedSkinConcern === 'all' && priceRange.min === 0 && priceRange.max === 100) {
+      filtered = products;
+    }
 
     // Sort products
     switch (sortBy) {

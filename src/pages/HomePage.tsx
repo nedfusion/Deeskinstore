@@ -10,8 +10,9 @@ interface HomePageProps {
 }
 
 const HomePage: React.FC<HomePageProps> = ({ onNavigate, onProductClick }) => {
-  const featuredProducts = products.filter(p => p.isPopular).slice(0, 4);
-  const newProducts = products.filter(p => p.isNew).slice(0, 4);
+  const featuredProducts = products.filter(p => p.isPopular);
+  const newProducts = products.filter(p => p.isNew);
+  const allProducts = products; // Show all products
 
   return (
     <div className="min-h-screen">
@@ -117,6 +118,19 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onProductClick }) => {
               />
             ))}
           </div>
+          
+          {/* Show all products if no featured products */}
+          {featuredProducts.length === 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {allProducts.slice(0, 4).map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onProductClick={onProductClick}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -197,6 +211,47 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onProductClick }) => {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {newProducts.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                onProductClick={onProductClick}
+              />
+            ))}
+          </div>
+          
+          {/* Show all products if no new products */}
+          {newProducts.length === 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {allProducts.slice(4, 8).map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onProductClick={onProductClick}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* All Products Section */}
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center mb-10">
+            <div>
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">All Products</h2>
+              <p className="text-gray-600">Complete collection of our skincare products</p>
+            </div>
+            <button
+              onClick={() => onNavigate('products')}
+              className="text-[#0d0499] font-semibold flex items-center hover:text-[#c6f2f4] transition-colors"
+            >
+              View All
+              <ChevronRight className="ml-1 h-5 w-5" />
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {allProducts.map((product) => (
               <ProductCard
                 key={product.id}
                 product={product}
