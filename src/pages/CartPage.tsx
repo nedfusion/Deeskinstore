@@ -1,14 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Minus, Trash2, ShoppingCart } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
+import PaystackCheckout from '../components/PaystackCheckout';
 
-interface CartPageProps {
-  onBack: () => void;
-  onNavigate: (page: string) => void;
-}
-
-const CartPage: React.FC<CartPageProps> = ({ onBack, onNavigate }) => {
+const CartPage: React.FC = () => {
   const { state, dispatch } = useCart();
+  const { state: authState } = useAuth();
+  const navigate = useNavigate();
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [paymentGateway, setPaymentGateway] = useState<'paystack' | 'stripe'>('paystack');
+  const [customerEmail, setCustomerEmail] = useState(authState.user?.email || '');
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-NG', {
@@ -25,6 +28,25 @@ const CartPage: React.FC<CartPageProps> = ({ onBack, onNavigate }) => {
     dispatch({ type: 'REMOVE_ITEM', payload: productId });
   };
 
+  const shippingCost = state.total >= 15000 ? 0 : 1500;
+  const taxAmount = state.total * 0.075;
+  const finalTotal = state.total + shippingCost + taxAmount;
+
+  const handlePaystackSuccess = (reference: string) => {
+    console.log('Payment successful:', reference);
+    dispatch({ type: 'CLEAR_CART' });
+    alert(`Payment successful! Reference: ${reference}`);
+    navigate('/');
+  };
+
+  const handlePaystackClose = () => {
+    console.log('Payment closed');
+  };
+
+  const handleStripeCheckout = () => {
+    alert('Stripe checkout will be implemented here. Contact support for Stripe integration.');
+  };
+
   if (state.items.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -34,7 +56,7 @@ const CartPage: React.FC<CartPageProps> = ({ onBack, onNavigate }) => {
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Your cart is empty</h2>
             <p className="text-gray-600 mb-6">Discover our amazing skincare products</p>
             <button
-              onClick={() => onNavigate('products')}
+              onClick={() => navigate('/products')}
               className="bg-[#0d0499] text-white px-6 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors"
             >
               Continue Shopping
@@ -47,11 +69,10 @@ const CartPage: React.FC<CartPageProps> = ({ onBack, onNavigate }) => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <div className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <button
-            onClick={onBack}
+            onClick={() => navigate(-1)}
             className="flex items-center text-gray-600 hover:text-[#0d0499] transition-colors mb-4"
           >
             <ArrowLeft className="h-5 w-5 mr-2" />
@@ -64,19 +85,16 @@ const CartPage: React.FC<CartPageProps> = ({ onBack, onNavigate }) => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Cart Items */}
           <div className="lg:col-span-2 space-y-4">
             {state.items.map((item) => (
               <div key={`${item.product.id}-${item.selectedSize}`} className="bg-white rounded-lg shadow-sm p-6">
                 <div className="flex items-center space-x-4">
-                  {/* Product Image */}
                   <img
                     src={item.product.picture}
                     alt={item.product.name}
                     className="w-20 h-20 object-cover rounded-lg"
                   />
 
-                  {/* Product Info */}
                   <div className="flex-1 min-w-0">
                     <h3 className="text-lg font-medium text-gray-900 truncate">
                       {item.product.name}
@@ -88,7 +106,6 @@ const CartPage: React.FC<CartPageProps> = ({ onBack, onNavigate }) => {
                     </p>
                   </div>
 
-                  {/* Quantity Controls */}
                   <div className="flex items-center space-x-3">
                     <button
                       onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
@@ -106,7 +123,6 @@ const CartPage: React.FC<CartPageProps> = ({ onBack, onNavigate }) => {
                     </button>
                   </div>
 
-                  {/* Remove Button */}
                   <button
                     onClick={() => removeItem(item.product.id)}
                     className="p-2 text-gray-400 hover:text-red-500 transition-colors"
@@ -115,7 +131,6 @@ const CartPage: React.FC<CartPageProps> = ({ onBack, onNavigate }) => {
                   </button>
                 </div>
 
-                {/* Subtotal */}
                 <div className="mt-4 flex justify-between items-center">
                   <span className="text-sm text-gray-600">
                     {item.quantity} × {formatPrice(item.product.price)}
@@ -128,11 +143,10 @@ const CartPage: React.FC<CartPageProps> = ({ onBack, onNavigate }) => {
             ))}
           </div>
 
-          {/* Order Summary */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-sm p-6 sticky top-4">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Order Summary</h2>
-              
+
               <div className="space-y-3 mb-4">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>
@@ -141,49 +155,128 @@ const CartPage: React.FC<CartPageProps> = ({ onBack, onNavigate }) => {
                 <div className="flex justify-between">
                   <span className="text-gray-600">Shipping</span>
                   <span className="font-medium">
-                    {state.total >= 50 ? 'Free' : formatPrice(5)}
+                    {shippingCost === 0 ? 'Free' : formatPrice(shippingCost)}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Tax</span>
-                  <span className="font-medium">{formatPrice(state.total * 0.075)}</span>
+                  <span className="text-gray-600">Tax (7.5%)</span>
+                  <span className="font-medium">{formatPrice(taxAmount)}</span>
                 </div>
                 <div className="border-t pt-3">
                   <div className="flex justify-between">
                     <span className="text-lg font-semibold">Total</span>
                     <span className="text-lg font-bold text-[#0d0499]">
-                      {formatPrice(state.total + (state.total >= 50 ? 0 : 5) + (state.total * 0.075))}
+                      {formatPrice(finalTotal)}
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* Shipping Notice */}
-              {state.total < 50 && (
+              {state.total < 15000 && (
                 <div className="bg-[#c6f2f4] rounded-lg p-3 mb-4">
                   <p className="text-sm text-[#0d0499]">
-                    Add {formatPrice(50 - state.total)} more to get free shipping!
+                    Add {formatPrice(15000 - state.total)} more to get free shipping!
                   </p>
                 </div>
               )}
 
-              {/* Checkout Button */}
-              <button
-                onClick={() => onNavigate('checkout')}
-                className="w-full bg-[#0d0499] text-white px-6 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors mb-3"
-              >
-                Proceed to Checkout
-              </button>
+              {!showCheckout ? (
+                <>
+                  <button
+                    onClick={() => setShowCheckout(true)}
+                    className="w-full bg-[#0d0499] text-white px-6 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors mb-3"
+                  >
+                    Proceed to Checkout
+                  </button>
 
-              {/* Continue Shopping */}
-              <button
-                onClick={() => onNavigate('products')}
-                className="w-full border border-[#0d0499] text-[#0d0499] px-6 py-3 rounded-lg font-semibold hover:bg-[#0d0499] hover:text-white transition-colors"
-              >
-                Continue Shopping
-              </button>
+                  <button
+                    onClick={() => navigate('/products')}
+                    className="w-full border border-[#0d0499] text-[#0d0499] px-6 py-3 rounded-lg font-semibold hover:bg-[#0d0499] hover:text-white transition-colors"
+                  >
+                    Continue Shopping
+                  </button>
+                </>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
+                      value={customerEmail}
+                      onChange={(e) => setCustomerEmail(e.target.value)}
+                      placeholder="your@email.com"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0d0499] focus:border-transparent"
+                      required
+                    />
+                  </div>
 
-              {/* Security Features */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Select Payment Method
+                    </label>
+
+                    <label className="flex items-center p-3 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-[#0d0499] transition-colors">
+                      <input
+                        type="radio"
+                        name="payment"
+                        value="paystack"
+                        checked={paymentGateway === 'paystack'}
+                        onChange={() => setPaymentGateway('paystack')}
+                        className="mr-3"
+                      />
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900">Paystack</div>
+                        <div className="text-sm text-gray-500">Pay with card, bank transfer, or USSD</div>
+                      </div>
+                      <img src="https://paystack.com/assets/img/logo/logo.svg" alt="Paystack" className="h-6" />
+                    </label>
+
+                    <label className="flex items-center p-3 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-[#0d0499] transition-colors">
+                      <input
+                        type="radio"
+                        name="payment"
+                        value="stripe"
+                        checked={paymentGateway === 'stripe'}
+                        onChange={() => setPaymentGateway('stripe')}
+                        className="mr-3"
+                      />
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900">Stripe</div>
+                        <div className="text-sm text-gray-500">International card payments</div>
+                      </div>
+                    </label>
+                  </div>
+
+                  {paymentGateway === 'paystack' && customerEmail && (
+                    <PaystackCheckout
+                      amount={finalTotal}
+                      email={customerEmail}
+                      onSuccess={handlePaystackSuccess}
+                      onClose={handlePaystackClose}
+                    />
+                  )}
+
+                  {paymentGateway === 'stripe' && (
+                    <button
+                      onClick={handleStripeCheckout}
+                      className="w-full bg-[#635bff] text-white px-6 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors"
+                    >
+                      Pay with Stripe
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => setShowCheckout(false)}
+                    className="w-full border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+                  >
+                    Back to Cart
+                  </button>
+                </div>
+              )}
+
               <div className="mt-6 space-y-2">
                 <div className="flex items-center text-sm text-gray-600">
                   <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>

@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { CartProvider } from './context/CartContext';
 import { AuthProvider } from './context/AuthContext';
 import { AdminProvider } from './context/AdminContext';
+import { PaymentProvider } from './context/PaymentContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
@@ -23,7 +24,8 @@ function App() {
     <AdminProvider>
       <AuthProvider>
         <CartProvider>
-          <Router>
+          <PaymentProvider>
+            <Router>
             <Routes>
               {/* Admin Routes - No Header/Footer */}
               <Route path="/admin" element={<AdminLoginPage />} />
@@ -52,7 +54,8 @@ function App() {
                 </div>
               } />
             </Routes>
-          </Router>
+            </Router>
+          </PaymentProvider>
         </CartProvider>
       </AuthProvider>
     </AdminProvider>
