@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { 
-  BarChart3, 
-  Package, 
-  ShoppingCart, 
-  Users, 
-  Star, 
-  TrendingUp, 
+import { useNavigate } from 'react-router-dom';
+import {
+  BarChart3,
+  Package,
+  ShoppingCart,
+  Users,
+  Star,
+  TrendingUp,
   DollarSign,
   Eye,
   LogOut,
@@ -18,18 +19,15 @@ import OrderManagement from './OrderManagement';
 import UserManagement from './UserManagement';
 import ReviewManagement from './ReviewManagement';
 
-interface AdminDashboardProps {
-  onLogout: () => void;
-}
-
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
+const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { state, logout, hasPermission } = useAdmin();
+  const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
-    onLogout();
+    navigate('/');
   };
 
   const navigation = [

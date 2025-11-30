@@ -1,25 +1,23 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Lock, Mail, Shield } from 'lucide-react';
 import { useAdmin } from '../../context/AdminContext';
 
-interface AdminLoginPageProps {
-  onLogin: () => void;
-}
-
-const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onLogin }) => {
+const AdminLoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const navigate = useNavigate();
 
   const { login, state } = useAdmin();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    
+
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -44,12 +42,12 @@ const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onLogin }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     try {
       await login(formData.email, formData.password);
-      onLogin();
+      navigate('/admin/dashboard');
     } catch (error) {
       setErrors({ submit: 'Invalid credentials. Please try again.' });
     }
@@ -158,7 +156,7 @@ const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onLogin }) => {
 
           <div className="mt-6">
             <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-gray-900 mb-2">Demo Credentials</h3>
+              <h3 className="text-sm font-medium text-gray-900 mb-2">Super Admin Credentials</h3>
               <p className="text-xs text-gray-600">
                 Email: admin@deeskinstore.com<br />
                 Password: admin123
