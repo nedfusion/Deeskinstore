@@ -1,25 +1,44 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Filter, Grid, List, ChevronDown } from 'lucide-react';
-import { products } from '../data/products';
 import ProductCard from '../components/ProductCard';
 import { Product } from '../types';
-
-// Debug: Log products to console
-console.log('Products loaded:', products);
-console.log('Number of products:', products.length);
+import { productsService } from '../services/products';
 
 interface ProductsPageProps {
   onProductClick: (product: Product) => void;
 }
 
 const ProductsPage: React.FC<ProductsPageProps> = ({ onProductClick }) => {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedBrand, setSelectedBrand] = useState('all');
   const [selectedSkinConcern, setSelectedSkinConcern] = useState('all');
-  const [priceRange, setPriceRange] = useState({ min: 0, max: 100 });
+  const [priceRange, setPriceRange] = useState({ min: 0, max: 100000 });
   const [sortBy, setSortBy] = useState('popular');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  const loadProducts = async () => {
+    try {
+      setLoading(true);
+      const data = await productsService.getAll();
+      setProducts(data);
+
+      if (data.length > 0) {
+        const maxPrice = Math.max(...data.map(p => p.price));
+        setPriceRange({ min: 0, max: maxPrice });
+      }
+    } catch (error) {
+      console.error('Error loading products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const categories = ['all', ...Array.from(new Set(products.flatMap(p => p.categories)))];
   
@@ -57,16 +76,11 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onProductClick }) => {
       const brandMatch = selectedBrand === 'all' || product.brand === selectedBrand;
       const skinConcernMatch = selectedSkinConcern === 'all' || 
         product.skinConcerns.includes(selectedSkinConcern);
-      const priceMatch = product.price >= (priceRange.min * 1000) && 
-        (priceRange.max >= 100 || product.price <= (priceRange.max * 1000));
+      const maxPrice = products.length > 0 ? Math.max(...products.map(p => p.price)) : 100000;
+      const priceMatch = product.price >= priceRange.min && product.price <= priceRange.max;
 
       return categoryMatch && brandMatch && skinConcernMatch && priceMatch;
     });
-    
-    // If no filters applied, show all products
-    if (selectedCategory === 'all' && selectedBrand === 'all' && selectedSkinConcern === 'all' && priceRange.min === 0 && priceRange.max === 100) {
-      filtered = products;
-    }
 
     // Sort products
     switch (sortBy) {
@@ -218,14 +232,14 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onProductClick }) => {
                 <input
                   type="range"
                   min="0"
-                  max="100"
+                  max={products.length > 0 ? Math.max(...products.map(p => p.price)) : 100000}
                   value={priceRange.max}
                   onChange={(e) => setPriceRange({ ...priceRange, max: parseInt(e.target.value) })}
                   className="w-full"
                 />
                 <div className="flex justify-between text-sm text-gray-600">
-                  <span>₦{priceRange.min}</span>
-                  <span>₦{priceRange.max}+</span>
+                  <span>₦{priceRange.min.toLocaleString()}</span>
+                  <span>₦{priceRange.max.toLocaleString()}</span>
                 </div>
               </div>
             </div>
@@ -236,7 +250,8 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onProductClick }) => {
                 setSelectedCategory('all');
                 setSelectedBrand('all');
                 setSelectedSkinConcern('all');
-                setPriceRange({ min: 0, max: 100 });
+                const maxPrice = products.length > 0 ? Math.max(...products.map(p => p.price)) : 100000;
+                setPriceRange({ min: 0, max: maxPrice });
               }}
               className="w-full px-4 py-2 text-sm text-[#0d0499] border border-[#0d0499] rounded-lg hover:bg-[#0d0499] hover:text-white transition-colors"
             >
@@ -246,7 +261,12 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onProductClick }) => {
 
           {/* Products Grid */}
           <div className="flex-1">
-            {filteredProducts.length === 0 ? (
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#0d0499]"></div>
+                <p className="text-gray-600 mt-4">Loading products...</p>
+              </div>
+            ) : filteredProducts.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-gray-600 mb-4">No products found matching your filters.</p>
                 <button
@@ -254,6 +274,8 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onProductClick }) => {
                     setSelectedCategory('all');
                     setSelectedBrand('all');
                     setSelectedSkinConcern('all');
+                    const maxPrice = products.length > 0 ? Math.max(...products.map(p => p.price)) : 100000;
+                    setPriceRange({ min: 0, max: maxPrice });
                   }}
                   className="text-[#0d0499] font-semibold hover:underline"
                 >
@@ -262,7 +284,7 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onProductClick }) => {
               </div>
             ) : (
               <div className={`grid gap-6 ${
-                viewMode === 'grid' 
+                viewMode === 'grid'
                   ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
                   : 'grid-cols-1'
               }`}>

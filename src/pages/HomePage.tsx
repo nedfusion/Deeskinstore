@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowRight, Star, Shield, Truck, Award, ChevronRight } from 'lucide-react';
-import { products } from '../data/products';
 import ProductCard from '../components/ProductCard';
 import { Product } from '../types';
+import { productsService } from '../services/products';
 
 interface HomePageProps {
   onNavigate: (page: string) => void;
@@ -10,9 +10,27 @@ interface HomePageProps {
 }
 
 const HomePage: React.FC<HomePageProps> = ({ onNavigate, onProductClick }) => {
-  const featuredProducts = products.filter(p => p.isPopular);
-  const newProducts = products.filter(p => p.isNew);
-  const allProducts = products; // Show all products
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  const loadProducts = async () => {
+    try {
+      setLoading(true);
+      const data = await productsService.getAll();
+      setAllProducts(data);
+    } catch (error) {
+      console.error('Error loading products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const featuredProducts = allProducts.filter(p => p.isPopular);
+  const newProducts = allProducts.filter(p => p.isNew);
 
   return (
     <div className="min-h-screen">
