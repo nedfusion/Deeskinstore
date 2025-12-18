@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { AdminUser, Permission } from '../types/admin';
+import { supabase } from '../lib/supabase';
 
 interface AdminState {
   currentAdmin: AdminUser | null;
@@ -16,7 +17,6 @@ interface AdminContextType {
 
 const AdminContext = createContext<AdminContextType | null>(null);
 
-// Default permissions
 const defaultPermissions: Permission[] = [
   { id: 'products.view', name: 'View Products', description: 'View product listings', category: 'products' },
   { id: 'products.create', name: 'Create Products', description: 'Add new products', category: 'products' },
@@ -34,37 +34,75 @@ const defaultPermissions: Permission[] = [
 const rolePermissions = {
   super_admin: defaultPermissions,
   admin: defaultPermissions.filter(p => !p.id.includes('users.create')),
-  manager: defaultPermissions.filter(p => p.category !== 'users'),
-  editor: defaultPermissions.filter(p => p.category === 'products' || p.category === 'orders'),
+  moderator: defaultPermissions.filter(p => p.category !== 'users'),
 };
 
 export const AdminProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, setState] = useState<AdminState>({
     currentAdmin: null,
     isAuthenticated: false,
-    isLoading: false,
+    isLoading: true,
   });
+
+  useEffect(() => {
+    const adminData = localStorage.getItem('adminUser');
+    if (adminData) {
+      try {
+        const admin = JSON.parse(adminData);
+        const permissions = rolePermissions[admin.role as keyof typeof rolePermissions] || [];
+        setState({
+          currentAdmin: {
+            ...admin,
+            permissions,
+            createdAt: new Date(admin.createdAt),
+            lastLogin: admin.lastLogin ? new Date(admin.lastLogin) : undefined,
+          },
+          isAuthenticated: true,
+          isLoading: false,
+        });
+      } catch {
+        localStorage.removeItem('adminUser');
+        setState({ currentAdmin: null, isAuthenticated: false, isLoading: false });
+      }
+    } else {
+      setState({ currentAdmin: null, isAuthenticated: false, isLoading: false });
+    }
+  }, []);
 
   const login = async (email: string, password: string) => {
     setState(prev => ({ ...prev, isLoading: true }));
     try {
-      // Mock admin login
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const mockAdmin: AdminUser = {
-        id: '1',
-        email,
-        firstName: 'Admin',
-        lastName: 'User',
-        role: 'super_admin',
-        permissions: rolePermissions.super_admin,
-        isActive: true,
+      const { data, error } = await supabase.rpc('authenticate_admin', {
+        p_email: email,
+        p_password: password,
+      });
+
+      if (error) throw new Error('Invalid email or password');
+
+      if (!data || data.length === 0) {
+        throw new Error('Invalid email or password');
+      }
+
+      const adminData = data[0];
+      const permissions = rolePermissions[adminData.role as keyof typeof rolePermissions] || [];
+      const [firstName, ...lastNameParts] = adminData.full_name.split(' ');
+
+      const adminUser: AdminUser = {
+        id: adminData.id,
+        email: adminData.email,
+        firstName: firstName || '',
+        lastName: lastNameParts.join(' ') || '',
+        role: adminData.role,
+        permissions,
+        isActive: adminData.is_active,
         createdAt: new Date(),
         lastLogin: new Date(),
       };
 
+      localStorage.setItem('adminUser', JSON.stringify(adminUser));
+
       setState({
-        currentAdmin: mockAdmin,
+        currentAdmin: adminUser,
         isAuthenticated: true,
         isLoading: false,
       });
@@ -75,6 +113,7 @@ export const AdminProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const logout = () => {
+    localStorage.removeItem('adminUser');
     setState({
       currentAdmin: null,
       isAuthenticated: false,

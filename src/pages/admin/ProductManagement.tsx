@@ -1,25 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit, Trash2, Eye, Filter } from 'lucide-react';
-import { products } from '../../data/products';
 import { Product } from '../../types';
 import { useAdmin } from '../../context/AdminContext';
 import ProductForm from '../../components/admin/ProductForm';
+import { productsService } from '../../services/products';
 
 const ProductManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showForm, setShowForm] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [productList, setProductList] = useState(products);
+  const [editingProduct, setEditingProduct] = useState<any | null>(null);
+  const [productList, setProductList] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const { hasPermission } = useAdmin();
 
-  const categories = ['all', ...Array.from(new Set(products.flatMap(p => p.categories)))];
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  const loadProducts = async () => {
+    try {
+      setLoading(true);
+      const data = await productsService.getAllAdmin();
+      setProductList(data);
+    } catch (error) {
+      console.error('Error loading products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const categories = ['all', ...Array.from(new Set(productList.map(p => p.category)))];
 
   const filteredProducts = productList.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.brand.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || 
-                           product.categories.includes(selectedCategory);
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -35,35 +50,51 @@ const ProductManagement: React.FC = () => {
     setShowForm(true);
   };
 
-  const handleEditProduct = (product: Product) => {
+  const handleEditProduct = (product: any) => {
     setEditingProduct(product);
     setShowForm(true);
   };
 
-  const handleDeleteProduct = (productId: string) => {
+  const handleDeleteProduct = async (productId: string) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
-      setProductList(prev => prev.filter(p => p.id !== productId));
+      try {
+        await productsService.delete(productId);
+        await loadProducts();
+      } catch (error) {
+        console.error('Error deleting product:', error);
+        alert('Failed to delete product');
+      }
     }
   };
 
-  const handleSaveProduct = (productData: any) => {
-    if (editingProduct) {
-      // Update existing product
-      setProductList(prev => prev.map(p => 
-        p.id === editingProduct.id ? { ...p, ...productData } : p
-      ));
-    } else {
-      // Add new product
-      const newProduct: Product = {
-        id: Date.now().toString(),
-        ...productData,
-        rating: 0,
-        reviewCount: 0,
-      };
-      setProductList(prev => [...prev, newProduct]);
+  const handleSaveProduct = async (productData: any) => {
+    try {
+      if (editingProduct) {
+        await productsService.update(editingProduct.id, {
+          name: productData.name,
+          description: productData.description,
+          price: productData.price,
+          image: productData.picture,
+          category: productData.categories[0],
+          stock: 50,
+        });
+      } else {
+        await productsService.create({
+          name: productData.name,
+          description: productData.description,
+          price: productData.price,
+          image: productData.picture,
+          category: productData.categories[0],
+          stock: 50,
+        });
+      }
+      setShowForm(false);
+      setEditingProduct(null);
+      await loadProducts();
+    } catch (error) {
+      console.error('Error saving product:', error);
+      alert('Failed to save product');
     }
-    setShowForm(false);
-    setEditingProduct(null);
   };
 
   if (showForm) {
@@ -156,86 +187,86 @@ const ProductManagement: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredProducts.map((product) => (
-                <tr key={product.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <img
-                        src={product.picture}
-                        alt={product.name}
-                        className="w-12 h-12 rounded-lg object-cover"
-                      />
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900 max-w-xs truncate">
-                          {product.name}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {product.categories.slice(0, 2).join(', ')}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {product.brand}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      {formatPrice(product.price)}
-                    </div>
-                    {product.originalPrice && (
-                      <div className="text-sm text-gray-500 line-through">
-                        {formatPrice(product.originalPrice)}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      product.inStock
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
-                    }`}>
-                      {product.inStock ? 'In Stock' : 'Out of Stock'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex space-x-1">
-                      {product.isNew && (
-                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                          New
-                        </span>
-                      )}
-                      {product.isPopular && (
-                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
-                          Popular
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <div className="flex space-x-2">
-                      <button className="text-gray-400 hover:text-gray-600 transition-colors">
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      {hasPermission('products.edit') && (
-                        <button
-                          onClick={() => handleEditProduct(product)}
-                          className="text-[#0d0499] hover:text-[#c6f2f4] transition-colors"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                      )}
-                      {hasPermission('products.delete') && (
-                        <button
-                          onClick={() => handleDeleteProduct(product.id)}
-                          className="text-red-600 hover:text-red-800 transition-colors"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      )}
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center">
+                    <div className="flex justify-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0d0499]"></div>
                     </div>
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredProducts.map((product) => (
+                  <tr key={product.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          className="w-12 h-12 rounded-lg object-cover"
+                        />
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900 max-w-xs truncate">
+                            {product.name}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {product.category}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      Various
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        {formatPrice(product.price)}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        product.stock > 0
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {product.stock > 0 ? `${product.stock} in stock` : 'Out of Stock'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        product.is_active
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {product.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <div className="flex space-x-2">
+                        <button className="text-gray-400 hover:text-gray-600 transition-colors">
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        {hasPermission('products.edit') && (
+                          <button
+                            onClick={() => handleEditProduct(product)}
+                            className="text-[#0d0499] hover:text-[#c6f2f4] transition-colors"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                        )}
+                        {hasPermission('products.delete') && (
+                          <button
+                            onClick={() => handleDeleteProduct(product.id)}
+                            className="text-red-600 hover:text-red-800 transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
