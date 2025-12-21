@@ -70,30 +70,18 @@ const ProductManagement: React.FC = () => {
   const handleSaveProduct = async (productData: any) => {
     try {
       if (editingProduct) {
-        await productsService.update(editingProduct.id, {
-          name: productData.name,
-          description: productData.description,
-          price: productData.price,
-          image: productData.picture,
-          category: productData.categories[0],
-          stock: 50,
-        });
+        await productsService.update(editingProduct.id, productData);
+        alert('Product updated successfully!');
       } else {
-        await productsService.create({
-          name: productData.name,
-          description: productData.description,
-          price: productData.price,
-          image: productData.picture,
-          category: productData.categories[0],
-          stock: 50,
-        });
+        await productsService.create(productData);
+        alert('Product created successfully!');
       }
       setShowForm(false);
       setEditingProduct(null);
       await loadProducts();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving product:', error);
-      alert('Failed to save product');
+      alert(`Failed to save product: ${error.message || 'Unknown error'}`);
     }
   };
 

@@ -1,81 +1,74 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Save, X } from 'lucide-react';
-import { Product } from '../../types';
-import { ProductFormData } from '../../types/admin';
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, Save } from 'lucide-react';
 
 interface ProductFormProps {
-  product?: Product | null;
-  onSave: (productData: ProductFormData) => void;
+  product?: any | null;
+  onSave: (productData: any) => void;
   onCancel: () => void;
 }
 
 const ProductForm: React.FC<ProductFormProps> = ({ product, onSave, onCancel }) => {
-  const [formData, setFormData] = useState<ProductFormData>({
-    name: product?.name || '',
-    brand: product?.brand || '',
-    description: product?.description || '',
-    price: product?.price || 0,
-    originalPrice: product?.originalPrice || undefined,
-    sizes: product?.sizes || [''],
-    categories: product?.categories || [''],
-    skinConcerns: product?.skinConcerns || [''],
-    skinTypes: product?.skinTypes || [''],
-    ingredients: product?.ingredients || [''],
-    picture: product?.picture || '',
-    inStock: product?.inStock ?? true,
-    isPopular: product?.isPopular || false,
-    isNew: product?.isNew || false,
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    price: 0,
+    image: '',
+    category: '',
+    stock: 50,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  useEffect(() => {
+    if (product) {
+      setFormData({
+        name: product.name || '',
+        description: product.description || '',
+        price: product.price || 0,
+        image: product.image || '',
+        category: product.category || '',
+        stock: product.stock || 50,
+      });
+    }
+  }, [product]);
+
+  const categories = [
+    'Cleansers',
+    'Moisturizers',
+    'Serums',
+    'Sunscreens',
+    'Toners',
+    'Masks',
+    'Eye Care',
+    'Lip Care',
+    'Body Care',
+    'Treatments',
+    'Tools & Accessories',
+  ];
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    
-    if (type === 'checkbox') {
-      const checked = (e.target as HTMLInputElement).checked;
-      setFormData(prev => ({ ...prev, [name]: checked }));
-    } else if (type === 'number') {
+
+    if (type === 'number') {
       setFormData(prev => ({ ...prev, [name]: parseFloat(value) || 0 }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
 
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
-  };
-
-  const handleArrayChange = (field: keyof ProductFormData, index: number, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: (prev[field] as string[]).map((item, i) => i === index ? value : item)
-    }));
-  };
-
-  const addArrayItem = (field: keyof ProductFormData) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: [...(prev[field] as string[]), '']
-    }));
-  };
-
-  const removeArrayItem = (field: keyof ProductFormData, index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: (prev[field] as string[]).filter((_, i) => i !== index)
-    }));
   };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) newErrors.name = 'Product name is required';
-    if (!formData.brand.trim()) newErrors.brand = 'Brand is required';
     if (!formData.description.trim()) newErrors.description = 'Description is required';
     if (formData.price <= 0) newErrors.price = 'Price must be greater than 0';
-    if (!formData.picture.trim()) newErrors.picture = 'Product image URL is required';
+    if (!formData.image.trim()) newErrors.image = 'Product image URL is required';
+    if (!formData.category.trim()) newErrors.category = 'Category is required';
+    if (formData.stock < 0) newErrors.stock = 'Stock cannot be negative';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -83,64 +76,14 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSave, onCancel }) 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
-    // Filter out empty strings from arrays
-    const cleanedData = {
-      ...formData,
-      sizes: formData.sizes.filter(s => s.trim()),
-      categories: formData.categories.filter(c => c.trim()),
-      skinConcerns: formData.skinConcerns.filter(sc => sc.trim()),
-      skinTypes: formData.skinTypes.filter(st => st.trim()),
-      ingredients: formData.ingredients.filter(i => i.trim()),
-    };
-
-    onSave(cleanedData);
+    onSave(formData);
   };
-
-  const renderArrayField = (
-    field: keyof ProductFormData,
-    label: string,
-    placeholder: string
-  ) => (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        {label}
-      </label>
-      {(formData[field] as string[]).map((item, index) => (
-        <div key={index} className="flex items-center mb-2">
-          <input
-            type="text"
-            value={item}
-            onChange={(e) => handleArrayChange(field, index, e.target.value)}
-            placeholder={placeholder}
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0d0499] focus:border-[#0d0499]"
-          />
-          {(formData[field] as string[]).length > 1 && (
-            <button
-              type="button"
-              onClick={() => removeArrayItem(field, index)}
-              className="ml-2 p-2 text-red-600 hover:text-red-800 transition-colors"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-      ))}
-      <button
-        type="button"
-        onClick={() => addArrayItem(field)}
-        className="text-sm text-[#0d0499] hover:text-[#c6f2f4] transition-colors"
-      >
-        + Add {label.slice(0, -1)}
-      </button>
-    </div>
-  );
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center">
           <button
@@ -160,9 +103,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSave, onCancel }) 
         </div>
       </div>
 
-      {/* Form */}
       <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm p-6 space-y-6">
-        {/* Basic Information */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
@@ -183,25 +124,27 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSave, onCancel }) 
           </div>
 
           <div>
-            <label htmlFor="brand" className="block text-sm font-medium text-gray-700 mb-1">
-              Brand *
+            <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
+              Category *
             </label>
-            <input
-              type="text"
-              id="brand"
-              name="brand"
-              value={formData.brand}
+            <select
+              id="category"
+              name="category"
+              value={formData.category}
               onChange={handleInputChange}
               className={`block w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#0d0499] focus:border-[#0d0499] ${
-                errors.brand ? 'border-red-300' : 'border-gray-300'
+                errors.category ? 'border-red-300' : 'border-gray-300'
               }`}
-              placeholder="Enter brand name"
-            />
-            {errors.brand && <p className="mt-1 text-sm text-red-600">{errors.brand}</p>}
+            >
+              <option value="">Select a category</option>
+              {categories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+            {errors.category && <p className="mt-1 text-sm text-red-600">{errors.category}</p>}
           </div>
         </div>
 
-        {/* Description */}
         <div>
           <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
             Description *
@@ -220,7 +163,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSave, onCancel }) 
           {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
         </div>
 
-        {/* Pricing */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">
@@ -243,46 +185,52 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSave, onCancel }) 
           </div>
 
           <div>
-            <label htmlFor="originalPrice" className="block text-sm font-medium text-gray-700 mb-1">
-              Original Price (₦) - Optional
+            <label htmlFor="stock" className="block text-sm font-medium text-gray-700 mb-1">
+              Stock Quantity *
             </label>
             <input
               type="number"
-              id="originalPrice"
-              name="originalPrice"
-              value={formData.originalPrice || ''}
+              id="stock"
+              name="stock"
+              value={formData.stock}
               onChange={handleInputChange}
               min="0"
-              step="0.01"
-              className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0d0499] focus:border-[#0d0499]"
-              placeholder="0.00"
+              step="1"
+              className={`block w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#0d0499] focus:border-[#0d0499] ${
+                errors.stock ? 'border-red-300' : 'border-gray-300'
+              }`}
+              placeholder="0"
             />
+            {errors.stock && <p className="mt-1 text-sm text-red-600">{errors.stock}</p>}
           </div>
         </div>
 
-        {/* Product Image */}
         <div>
-          <label htmlFor="picture" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-1">
             Product Image URL *
           </label>
           <input
             type="url"
-            id="picture"
-            name="picture"
-            value={formData.picture}
+            id="image"
+            name="image"
+            value={formData.image}
             onChange={handleInputChange}
             className={`block w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#0d0499] focus:border-[#0d0499] ${
-              errors.picture ? 'border-red-300' : 'border-gray-300'
+              errors.image ? 'border-red-300' : 'border-gray-300'
             }`}
             placeholder="https://example.com/image.jpg"
           />
-          {errors.picture && <p className="mt-1 text-sm text-red-600">{errors.picture}</p>}
-          {formData.picture && (
-            <div className="mt-2">
+          {errors.image && <p className="mt-1 text-sm text-red-600">{errors.image}</p>}
+          <p className="mt-1 text-sm text-gray-500">
+            Use high-quality product images. Recommended size: 800x800px
+          </p>
+          {formData.image && (
+            <div className="mt-3">
+              <p className="text-sm font-medium text-gray-700 mb-2">Image Preview:</p>
               <img
-                src={formData.picture}
+                src={formData.image}
                 alt="Product preview"
-                className="w-32 h-32 object-cover rounded-lg"
+                className="w-48 h-48 object-cover rounded-lg border border-gray-200"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = 'none';
                 }}
@@ -291,56 +239,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSave, onCancel }) 
           )}
         </div>
 
-        {/* Array Fields */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {renderArrayField('sizes', 'Sizes', 'e.g., 150ml')}
-          {renderArrayField('categories', 'Categories', 'e.g., Cleansers')}
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {renderArrayField('skinConcerns', 'Skin Concerns', 'e.g., Acne')}
-          {renderArrayField('skinTypes', 'Skin Types', 'e.g., Oily')}
-        </div>
-
-        {renderArrayField('ingredients', 'Key Ingredients', 'e.g., Salicylic Acid')}
-
-        {/* Status Checkboxes */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <label className="flex items-center">
-            <input
-              type="checkbox"
-              name="inStock"
-              checked={formData.inStock}
-              onChange={handleInputChange}
-              className="mr-2 text-[#0d0499] focus:ring-[#0d0499]"
-            />
-            <span className="text-sm font-medium text-gray-700">In Stock</span>
-          </label>
-
-          <label className="flex items-center">
-            <input
-              type="checkbox"
-              name="isPopular"
-              checked={formData.isPopular}
-              onChange={handleInputChange}
-              className="mr-2 text-[#0d0499] focus:ring-[#0d0499]"
-            />
-            <span className="text-sm font-medium text-gray-700">Popular Product</span>
-          </label>
-
-          <label className="flex items-center">
-            <input
-              type="checkbox"
-              name="isNew"
-              checked={formData.isNew}
-              onChange={handleInputChange}
-              className="mr-2 text-[#0d0499] focus:ring-[#0d0499]"
-            />
-            <span className="text-sm font-medium text-gray-700">New Product</span>
-          </label>
-        </div>
-
-        {/* Form Actions */}
         <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
           <button
             type="button"

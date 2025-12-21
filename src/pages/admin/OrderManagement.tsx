@@ -1,98 +1,57 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Filter, Eye, Edit, Package, Truck, CheckCircle, X } from 'lucide-react';
-import { OrderManagement as OrderType } from '../../types/admin';
 import { useAdmin } from '../../context/AdminContext';
+import { supabase } from '../../lib/supabase';
 
 const OrderManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedOrder, setSelectedOrder] = useState<OrderType | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const { hasPermission } = useAdmin();
 
-  // Mock order data
-  const [orders, setOrders] = useState<OrderType[]>([
-    {
-      id: '1',
-      userId: 'user1',
-      items: [],
-      total: 15400,
-      status: 'delivered',
-      createdAt: new Date('2024-01-15'),
-      shippingAddress: {
-        id: '1',
-        type: 'shipping',
-        firstName: 'Jane',
-        lastName: 'Doe',
-        street: '123 Main St',
-        city: 'Lagos',
-        state: 'Lagos',
-        zipCode: '100001',
-        country: 'Nigeria',
-        isDefault: true,
-      },
-      billingAddress: {
-        id: '1',
-        type: 'billing',
-        firstName: 'Jane',
-        lastName: 'Doe',
-        street: '123 Main St',
-        city: 'Lagos',
-        state: 'Lagos',
-        zipCode: '100001',
-        country: 'Nigeria',
-        isDefault: true,
-      },
-      customerInfo: {
-        name: 'Jane Doe',
-        email: 'jane@example.com',
-        phone: '+234 123 456 7890',
-      },
-      paymentStatus: 'paid',
-      fulfillmentStatus: 'delivered',
-      notes: ['Order processed successfully', 'Shipped via DHL'],
-      trackingNumber: 'DHL123456789',
-    },
-    {
-      id: '2',
-      userId: 'user2',
-      items: [],
-      total: 8200,
-      status: 'processing',
-      createdAt: new Date('2024-01-15'),
-      shippingAddress: {
-        id: '2',
-        type: 'shipping',
-        firstName: 'John',
-        lastName: 'Smith',
-        street: '456 Oak Ave',
-        city: 'Abuja',
-        state: 'FCT',
-        zipCode: '900001',
-        country: 'Nigeria',
-        isDefault: true,
-      },
-      billingAddress: {
-        id: '2',
-        type: 'billing',
-        firstName: 'John',
-        lastName: 'Smith',
-        street: '456 Oak Ave',
-        city: 'Abuja',
-        state: 'FCT',
-        zipCode: '900001',
-        country: 'Nigeria',
-        isDefault: true,
-      },
-      customerInfo: {
-        name: 'John Smith',
-        email: 'john@example.com',
-        phone: '+234 987 654 3210',
-      },
-      paymentStatus: 'paid',
-      fulfillmentStatus: 'processing',
-      notes: ['Payment confirmed', 'Preparing for shipment'],
-    },
-  ]);
+  useEffect(() => {
+    loadOrders();
+  }, []);
+
+  const loadOrders = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          user:users(full_name, email),
+          order_items(*, product:products(*))
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedOrders = (data || []).map((order: any) => ({
+        id: order.id,
+        userId: order.user_id,
+        items: order.order_items || [],
+        total: order.total_amount,
+        status: order.status,
+        createdAt: new Date(order.created_at),
+        customerInfo: {
+          name: order.user?.full_name || 'Guest',
+          email: order.user?.email || 'N/A',
+          phone: order.shipping_address?.phone || 'N/A',
+        },
+        shippingAddress: order.shipping_address || {},
+        paymentReference: order.payment_reference,
+      }));
+
+      setOrders(formattedOrders);
+    } catch (error) {
+      console.error('Error loading orders:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const statusOptions = [
     { value: 'all', label: 'All Orders' },
@@ -158,20 +117,30 @@ const OrderManagement: React.FC = () => {
     }
   };
 
-  const updateOrderStatus = (orderId: string, newStatus: string) => {
-    setOrders(prev => prev.map(order => 
-      order.id === orderId 
-        ? { ...order, status: newStatus as any, fulfillmentStatus: newStatus as any }
-        : order
-    ));
-  };
+  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: newStatus })
+        .eq('id', orderId);
 
-  const addOrderNote = (orderId: string, note: string) => {
-    setOrders(prev => prev.map(order => 
-      order.id === orderId 
-        ? { ...order, notes: [...order.notes, note] }
-        : order
-    ));
+      if (error) throw error;
+
+      setOrders(prev => prev.map(order =>
+        order.id === orderId
+          ? { ...order, status: newStatus as any }
+          : order
+      ));
+
+      if (selectedOrder && selectedOrder.id === orderId) {
+        setSelectedOrder({ ...selectedOrder, status: newStatus });
+      }
+
+      alert('Order status updated successfully');
+    } catch (error: any) {
+      console.error('Error updating order status:', error);
+      alert(`Failed to update order status: ${error.message}`);
+    }
   };
 
   if (selectedOrder) {
@@ -226,10 +195,16 @@ const OrderManagement: React.FC = () => {
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Shipping Address</h3>
             <div className="text-gray-900">
-              <p>{selectedOrder.shippingAddress.firstName} {selectedOrder.shippingAddress.lastName}</p>
-              <p>{selectedOrder.shippingAddress.street}</p>
-              <p>{selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state} {selectedOrder.shippingAddress.zipCode}</p>
-              <p>{selectedOrder.shippingAddress.country}</p>
+              {selectedOrder.shippingAddress && typeof selectedOrder.shippingAddress === 'object' ? (
+                <>
+                  <p>{selectedOrder.shippingAddress.firstName || ''} {selectedOrder.shippingAddress.lastName || ''}</p>
+                  <p>{selectedOrder.shippingAddress.street || ''}</p>
+                  <p>{selectedOrder.shippingAddress.city || ''}, {selectedOrder.shippingAddress.state || ''} {selectedOrder.shippingAddress.zipCode || ''}</p>
+                  <p>{selectedOrder.shippingAddress.country || 'Nigeria'}</p>
+                </>
+              ) : (
+                <p className="text-gray-500">No shipping address available</p>
+              )}
             </div>
           </div>
 
@@ -277,14 +252,14 @@ const OrderManagement: React.FC = () => {
                 </select>
               </div>
               
-              {selectedOrder.trackingNumber && (
+              {selectedOrder.paymentReference && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Tracking Number
+                    Payment Reference
                   </label>
                   <input
                     type="text"
-                    value={selectedOrder.trackingNumber}
+                    value={selectedOrder.paymentReference}
                     readOnly
                     className="block w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
                   />
@@ -293,50 +268,6 @@ const OrderManagement: React.FC = () => {
             </div>
           </div>
         )}
-
-        {/* Order Notes */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Order Notes</h3>
-          <div className="space-y-3 mb-4">
-            {selectedOrder.notes.map((note, index) => (
-              <div key={index} className="bg-gray-50 rounded-lg p-3">
-                <p className="text-gray-900">{note}</p>
-                <p className="text-xs text-gray-500 mt-1">Added on {formatDate(new Date())}</p>
-              </div>
-            ))}
-          </div>
-          
-          {hasPermission('orders.edit') && (
-            <div className="flex space-x-2">
-              <input
-                type="text"
-                placeholder="Add a note..."
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0d0499] focus:border-[#0d0499]"
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    const input = e.target as HTMLInputElement;
-                    if (input.value.trim()) {
-                      addOrderNote(selectedOrder.id, input.value.trim());
-                      input.value = '';
-                    }
-                  }
-                }}
-              />
-              <button
-                onClick={(e) => {
-                  const input = (e.target as HTMLButtonElement).previousElementSibling as HTMLInputElement;
-                  if (input.value.trim()) {
-                    addOrderNote(selectedOrder.id, input.value.trim());
-                    input.value = '';
-                  }
-                }}
-                className="px-4 py-2 bg-[#0d0499] text-white rounded-md hover:bg-opacity-90 transition-colors"
-              >
-                Add Note
-              </button>
-            </div>
-          )}
-        </div>
       </div>
     );
   }
@@ -409,8 +340,24 @@ const OrderManagement: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredOrders.map((order) => (
-                <tr key={order.id} className="hover:bg-gray-50">
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center">
+                    <div className="flex justify-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0d0499]"></div>
+                    </div>
+                    <p className="text-gray-600 mt-2">Loading orders...</p>
+                  </td>
+                </tr>
+              ) : filteredOrders.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center">
+                    <p className="text-gray-600">No orders found</p>
+                  </td>
+                </tr>
+              ) : (
+                filteredOrders.map((order) => (
+                  <tr key={order.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     #{order.id}
                   </td>
@@ -452,13 +399,14 @@ const OrderManagement: React.FC = () => {
                     </div>
                   </td>
                 </tr>
-              ))}
+                ))
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {filteredOrders.length === 0 && (
+      {!loading && filteredOrders.length === 0 && statusFilter === 'all' && (
         <div className="text-center py-12">
           <p className="text-gray-600 mb-4">No orders found matching your criteria.</p>
           <button
