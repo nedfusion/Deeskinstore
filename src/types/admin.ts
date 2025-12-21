@@ -3,7 +3,7 @@ export interface AdminUser {
   email: string;
   firstName: string;
   lastName: string;
-  role: 'super_admin' | 'admin' | 'manager' | 'editor';
+  role: 'super_admin' | 'admin' | 'moderator';
   permissions: Permission[];
   isActive: boolean;
   createdAt: Date;

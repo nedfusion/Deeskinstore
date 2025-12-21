@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit, Trash2, Shield, User, Eye, EyeOff } from 'lucide-react';
 import { AdminUser, Permission } from '../../types/admin';
 import { useAdmin } from '../../context/AdminContext';
+import { supabase } from '../../lib/supabase';
 
 const UserManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -9,6 +10,7 @@ const UserManagement: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { hasPermission } = useAdmin();
 
   const [formData, setFormData] = useState({
@@ -16,61 +18,61 @@ const UserManagement: React.FC = () => {
     lastName: '',
     email: '',
     password: '',
-    role: 'editor' as AdminUser['role'],
+    role: 'moderator' as AdminUser['role'],
     isActive: true,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Mock admin users data
-  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([
-    {
-      id: '1',
-      email: 'admin@deeskinstore.com',
-      firstName: 'Super',
-      lastName: 'Admin',
-      role: 'super_admin',
-      permissions: [],
-      isActive: true,
-      createdAt: new Date('2024-01-01'),
-      lastLogin: new Date('2024-01-15'),
-    },
-    {
-      id: '2',
-      email: 'manager@deeskinstore.com',
-      firstName: 'Store',
-      lastName: 'Manager',
-      role: 'manager',
-      permissions: [],
-      isActive: true,
-      createdAt: new Date('2024-01-05'),
-      lastLogin: new Date('2024-01-14'),
-    },
-    {
-      id: '3',
-      email: 'editor@deeskinstore.com',
-      firstName: 'Content',
-      lastName: 'Editor',
-      role: 'editor',
-      permissions: [],
-      isActive: false,
-      createdAt: new Date('2024-01-10'),
-    },
-  ]);
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+
+  // Load admin users from database
+  useEffect(() => {
+    loadAdminUsers();
+  }, []);
+
+  const loadAdminUsers = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase.rpc('get_all_admins');
+
+      if (error) throw error;
+
+      const users: AdminUser[] = data.map((admin: any) => {
+        const [firstName, ...lastNameParts] = admin.full_name.split(' ');
+        return {
+          id: admin.id,
+          email: admin.email,
+          firstName: firstName || '',
+          lastName: lastNameParts.join(' ') || '',
+          role: admin.role,
+          permissions: [],
+          isActive: admin.is_active,
+          createdAt: new Date(admin.created_at),
+          lastLogin: admin.last_login ? new Date(admin.last_login) : undefined,
+        };
+      });
+
+      setAdminUsers(users);
+    } catch (error) {
+      console.error('Error loading admin users:', error);
+      alert('Failed to load admin users');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const roleOptions = [
     { value: 'all', label: 'All Roles' },
     { value: 'super_admin', label: 'Super Admin' },
     { value: 'admin', label: 'Admin' },
-    { value: 'manager', label: 'Manager' },
-    { value: 'editor', label: 'Editor' },
+    { value: 'moderator', label: 'Moderator' },
   ];
 
   const roleDescriptions = {
     super_admin: 'Full system access including user management',
     admin: 'Full access except creating new admin users',
-    manager: 'Product and order management access',
-    editor: 'Product and content editing access only',
+    moderator: 'Product, order, and review moderation access',
   };
 
   const filteredUsers = adminUsers.filter(user => {
@@ -92,9 +94,8 @@ const UserManagement: React.FC = () => {
   const getRoleBadge = (role: AdminUser['role']) => {
     const colors = {
       super_admin: 'bg-red-100 text-red-800',
-      admin: 'bg-purple-100 text-purple-800',
-      manager: 'bg-blue-100 text-blue-800',
-      editor: 'bg-green-100 text-green-800',
+      admin: 'bg-blue-100 text-blue-800',
+      moderator: 'bg-green-100 text-green-800',
     };
 
     return (
@@ -141,44 +142,70 @@ const UserManagement: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
-    if (editingUser) {
-      // Update existing user
-      setAdminUsers(prev => prev.map(user => 
-        user.id === editingUser.id 
-          ? { 
-              ...user, 
-              ...formData,
-              permissions: [], // Would be calculated based on role
-            }
-          : user
-      ));
-    } else {
-      // Add new user
-      const newUser: AdminUser = {
-        id: Date.now().toString(),
-        ...formData,
-        permissions: [], // Would be calculated based on role
-        createdAt: new Date(),
-      };
-      setAdminUsers(prev => [...prev, newUser]);
-    }
+    try {
+      const fullName = `${formData.firstName} ${formData.lastName}`.trim();
 
-    // Reset form
-    setFormData({
-      firstName: '',
-      lastName: '',
-      email: '',
-      password: '',
-      role: 'editor',
-      isActive: true,
-    });
-    setShowForm(false);
-    setEditingUser(null);
+      if (editingUser) {
+        // Update existing user
+        const { error: updateError } = await supabase.rpc('update_admin', {
+          p_admin_id: editingUser.id,
+          p_email: formData.email,
+          p_full_name: fullName,
+          p_role: formData.role,
+          p_is_active: formData.isActive,
+        });
+
+        if (updateError) throw updateError;
+
+        // Update password if provided
+        if (formData.password) {
+          const { error: passwordError } = await supabase.rpc('update_admin_password', {
+            p_admin_id: editingUser.id,
+            p_new_password: formData.password,
+          });
+
+          if (passwordError) throw passwordError;
+        }
+
+        alert('Admin user updated successfully');
+      } else {
+        // Create new user
+        const { data, error } = await supabase.rpc('create_admin', {
+          p_email: formData.email,
+          p_password: formData.password,
+          p_full_name: fullName,
+          p_role: formData.role,
+          p_is_active: formData.isActive,
+        });
+
+        if (error) throw error;
+
+        alert('Admin user created successfully');
+      }
+
+      // Reload admin users from database
+      await loadAdminUsers();
+
+      // Reset form
+      setFormData({
+        firstName: '',
+        lastName: '',
+        email: '',
+        password: '',
+        role: 'moderator',
+        isActive: true,
+      });
+      setShowForm(false);
+      setEditingUser(null);
+    } catch (error: any) {
+      console.error('Error saving admin user:', error);
+      alert(`Failed to save admin user: ${error.message}`);
+    }
   };
 
   const handleEditUser = (user: AdminUser) => {
@@ -194,17 +221,62 @@ const UserManagement: React.FC = () => {
     setShowForm(true);
   };
 
-  const handleDeleteUser = (userId: string) => {
-    if (window.confirm('Are you sure you want to delete this admin user?')) {
-      setAdminUsers(prev => prev.filter(user => user.id !== userId));
+  const handleDeleteUser = async (userId: string) => {
+    if (window.confirm('Are you sure you want to delete this admin user? This action cannot be undone.')) {
+      try {
+        const { error } = await supabase.rpc('delete_admin', {
+          p_admin_id: userId,
+        });
+
+        if (error) throw error;
+
+        alert('Admin user deleted successfully');
+        await loadAdminUsers();
+      } catch (error: any) {
+        console.error('Error deleting admin user:', error);
+        alert(`Failed to delete admin user: ${error.message}`);
+      }
     }
   };
 
-  const toggleUserStatus = (userId: string) => {
-    setAdminUsers(prev => prev.map(user => 
-      user.id === userId ? { ...user, isActive: !user.isActive } : user
-    ));
+  const toggleUserStatus = async (userId: string) => {
+    const user = adminUsers.find(u => u.id === userId);
+    if (!user) return;
+
+    try {
+      const [firstName, ...lastNameParts] = user.firstName && user.lastName
+        ? [user.firstName, user.lastName]
+        : user.email.split('@')[0].split(' ');
+
+      const fullName = `${firstName} ${lastNameParts.join(' ') || ''}`.trim();
+
+      const { error } = await supabase.rpc('update_admin', {
+        p_admin_id: userId,
+        p_email: user.email,
+        p_full_name: fullName || user.email,
+        p_role: user.role,
+        p_is_active: !user.isActive,
+      });
+
+      if (error) throw error;
+
+      await loadAdminUsers();
+    } catch (error: any) {
+      console.error('Error toggling user status:', error);
+      alert(`Failed to update user status: ${error.message}`);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-[#0d0499] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading admin users...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -223,7 +295,7 @@ const UserManagement: React.FC = () => {
                 lastName: '',
                 email: '',
                 password: '',
-                role: 'editor',
+                role: 'moderator',
                 isActive: true,
               });
               setShowForm(true);
@@ -381,8 +453,7 @@ const UserManagement: React.FC = () => {
                     onChange={handleInputChange}
                     className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0d0499] focus:border-[#0d0499]"
                   >
-                    <option value="editor">Editor</option>
-                    <option value="manager">Manager</option>
+                    <option value="moderator">Moderator</option>
                     <option value="admin">Admin</option>
                     <option value="super_admin">Super Admin</option>
                   </select>
