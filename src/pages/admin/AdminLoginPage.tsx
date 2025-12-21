@@ -153,16 +153,6 @@ const AdminLoginPage: React.FC = () => {
               </button>
             </div>
           </form>
-
-          <div className="mt-6">
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-gray-900 mb-2">Super Admin Credentials</h3>
-              <p className="text-xs text-gray-600">
-                Email: admin@deeskinstore.com<br />
-                Password: admin123
-              </p>
-            </div>
-          </div>
         </div>
       </div>
     </div>
