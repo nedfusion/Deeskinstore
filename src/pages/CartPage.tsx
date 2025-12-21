@@ -1,17 +1,31 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Minus, Trash2, ShoppingCart } from 'lucide-react';
+import { ArrowLeft, Plus, Minus, Trash2, ShoppingCart, User, MapPin, CreditCard, CheckCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import PaystackCheckout from '../components/PaystackCheckout';
+import { supabase } from '../lib/supabase';
+import { nigerianStates } from '../data/nigerianStates';
 
 const CartPage: React.FC = () => {
   const { state, dispatch } = useCart();
   const { state: authState } = useAuth();
   const navigate = useNavigate();
-  const [showCheckout, setShowCheckout] = useState(false);
-  const [paymentGateway, setPaymentGateway] = useState<'paystack' | 'stripe'>('paystack');
-  const [customerEmail, setCustomerEmail] = useState(authState.user?.email || '');
+
+  const [checkoutStep, setCheckoutStep] = useState<'cart' | 'shipping' | 'payment'>('cart');
+  const [customerInfo, setCustomerInfo] = useState({
+    fullName: authState.user?.full_name || '',
+    email: authState.user?.email || '',
+    phone: authState.user?.phone || '',
+  });
+  const [shippingAddress, setShippingAddress] = useState({
+    address: '',
+    city: '',
+    state: '',
+    postalCode: '',
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-NG', {
@@ -32,19 +46,131 @@ const CartPage: React.FC = () => {
   const taxAmount = state.total * 0.075;
   const finalTotal = state.total + shippingCost + taxAmount;
 
+  const validateCustomerInfo = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!customerInfo.fullName.trim()) newErrors.fullName = 'Full name is required';
+    if (!customerInfo.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(customerInfo.email)) {
+      newErrors.email = 'Please enter a valid email';
+    }
+    if (!customerInfo.phone.trim()) newErrors.phone = 'Phone number is required';
+
+    if (!shippingAddress.address.trim()) newErrors.address = 'Street address is required';
+    if (!shippingAddress.city.trim()) newErrors.city = 'City is required';
+    if (!shippingAddress.state) newErrors.state = 'Please select a state';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleCustomerInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setCustomerInfo(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const handleShippingChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setShippingAddress(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const handleContinueToPayment = () => {
+    if (validateCustomerInfo()) {
+      setCheckoutStep('payment');
+    }
+  };
+
+  const createOrder = async (paymentReference: string) => {
+    try {
+      setIsProcessing(true);
+
+      let userId = authState.user?.id;
+
+      if (!userId) {
+        const { data: existingUser } = await supabase
+          .from('users')
+          .select('id')
+          .eq('email', customerInfo.email)
+          .maybeSingle();
+
+        if (existingUser) {
+          userId = existingUser.id;
+        } else {
+          const { data: newUser, error: userError } = await supabase
+            .from('users')
+            .insert({
+              email: customerInfo.email,
+              full_name: customerInfo.fullName,
+              phone: customerInfo.phone,
+            })
+            .select()
+            .single();
+
+          if (userError) throw userError;
+          userId = newUser.id;
+        }
+      }
+
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          user_id: userId,
+          total_amount: finalTotal,
+          status: 'pending',
+          payment_reference: paymentReference,
+          shipping_address: {
+            fullName: customerInfo.fullName,
+            email: customerInfo.email,
+            phone: customerInfo.phone,
+            address: shippingAddress.address,
+            city: shippingAddress.city,
+            state: shippingAddress.state,
+            postalCode: shippingAddress.postalCode,
+          },
+        })
+        .select()
+        .single();
+
+      if (orderError) throw orderError;
+
+      const orderItems = state.items.map(item => ({
+        order_id: order.id,
+        product_id: item.product.id,
+        quantity: item.quantity,
+        price: item.product.price,
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(orderItems);
+
+      if (itemsError) throw itemsError;
+
+      dispatch({ type: 'CLEAR_CART' });
+
+      alert(`Order placed successfully! Your order ID is: ${order.id.slice(0, 8)}`);
+      navigate('/');
+    } catch (error: any) {
+      console.error('Error creating order:', error);
+      alert(`Error creating order: ${error.message}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handlePaystackSuccess = (reference: string) => {
-    console.log('Payment successful:', reference);
-    dispatch({ type: 'CLEAR_CART' });
-    alert(`Payment successful! Reference: ${reference}`);
-    navigate('/');
+    createOrder(reference);
   };
 
   const handlePaystackClose = () => {
     console.log('Payment closed');
-  };
-
-  const handleStripeCheckout = () => {
-    alert('Stripe checkout will be implemented here. Contact support for Stripe integration.');
   };
 
   if (state.items.length === 0) {
@@ -72,75 +198,284 @@ const CartPage: React.FC = () => {
       <div className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => {
+              if (checkoutStep !== 'cart') {
+                setCheckoutStep(checkoutStep === 'payment' ? 'shipping' : 'cart');
+              } else {
+                navigate(-1);
+              }
+            }}
             className="flex items-center text-gray-600 hover:text-[#0d0499] transition-colors mb-4"
           >
             <ArrowLeft className="h-5 w-5 mr-2" />
-            Continue Shopping
+            {checkoutStep === 'cart' ? 'Continue Shopping' : 'Back'}
           </button>
-          <h1 className="text-2xl font-bold text-gray-900">Shopping Cart</h1>
-          <p className="text-gray-600">{state.itemCount} items in your cart</p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {checkoutStep === 'cart' && 'Shopping Cart'}
+            {checkoutStep === 'shipping' && 'Shipping Information'}
+            {checkoutStep === 'payment' && 'Payment'}
+          </h1>
+          <div className="flex items-center mt-2 space-x-4">
+            <div className={`flex items-center ${checkoutStep === 'cart' ? 'text-[#0d0499]' : 'text-gray-400'}`}>
+              <ShoppingCart className="h-4 w-4 mr-1" />
+              <span className="text-sm">Cart</span>
+            </div>
+            <div className="h-px w-8 bg-gray-300"></div>
+            <div className={`flex items-center ${checkoutStep === 'shipping' ? 'text-[#0d0499]' : 'text-gray-400'}`}>
+              <MapPin className="h-4 w-4 mr-1" />
+              <span className="text-sm">Shipping</span>
+            </div>
+            <div className="h-px w-8 bg-gray-300"></div>
+            <div className={`flex items-center ${checkoutStep === 'payment' ? 'text-[#0d0499]' : 'text-gray-400'}`}>
+              <CreditCard className="h-4 w-4 mr-1" />
+              <span className="text-sm">Payment</span>
+            </div>
+          </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-4">
-            {state.items.map((item) => (
-              <div key={`${item.product.id}-${item.selectedSize}`} className="bg-white rounded-lg shadow-sm p-6">
-                <div className="flex items-center space-x-4">
-                  <img
-                    src={item.product.picture}
-                    alt={item.product.name}
-                    className="w-20 h-20 object-cover rounded-lg"
-                  />
+          <div className="lg:col-span-2">
+            {checkoutStep === 'cart' && (
+              <div className="space-y-4">
+                {state.items.map((item) => (
+                  <div key={`${item.product.id}-${item.selectedSize}`} className="bg-white rounded-lg shadow-sm p-6">
+                    <div className="flex items-center space-x-4">
+                      <img
+                        src={item.product.picture}
+                        alt={item.product.name}
+                        className="w-20 h-20 object-cover rounded-lg"
+                      />
 
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-medium text-gray-900 truncate">
-                      {item.product.name}
-                    </h3>
-                    <p className="text-sm text-gray-500">{item.product.brand}</p>
-                    <p className="text-sm text-gray-500">Size: {item.selectedSize}</p>
-                    <p className="text-lg font-bold text-[#0d0499] mt-1">
-                      {formatPrice(item.product.price)}
-                    </p>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-lg font-medium text-gray-900 truncate">
+                          {item.product.name}
+                        </h3>
+                        <p className="text-sm text-gray-500">{item.product.brand}</p>
+                        <p className="text-lg font-bold text-[#0d0499] mt-1">
+                          {formatPrice(item.product.price)}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center space-x-3">
+                        <button
+                          onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                          className="p-1 border border-gray-300 rounded hover:bg-gray-50"
+                          disabled={item.quantity <= 1}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </button>
+                        <span className="w-8 text-center font-medium">{item.quantity}</span>
+                        <button
+                          onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                          className="p-1 border border-gray-300 rounded hover:bg-gray-50"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      <button
+                        onClick={() => removeItem(item.product.id)}
+                        className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </button>
+                    </div>
+
+                    <div className="mt-4 flex justify-between items-center">
+                      <span className="text-sm text-gray-600">
+                        {item.quantity} × {formatPrice(item.product.price)}
+                      </span>
+                      <span className="text-lg font-bold text-gray-900">
+                        {formatPrice(item.product.price * item.quantity)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {checkoutStep === 'shipping' && (
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <h2 className="text-xl font-semibold mb-6">Shipping Details</h2>
+
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
+                      Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      id="fullName"
+                      name="fullName"
+                      value={customerInfo.fullName}
+                      onChange={handleCustomerInfoChange}
+                      className={`block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0d0499] ${
+                        errors.fullName ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                      placeholder="John Doe"
+                    />
+                    {errors.fullName && <p className="mt-1 text-sm text-red-600">{errors.fullName}</p>}
                   </div>
 
-                  <div className="flex items-center space-x-3">
-                    <button
-                      onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
-                      className="p-1 border border-gray-300 rounded hover:bg-gray-50"
-                      disabled={item.quantity <= 1}
-                    >
-                      <Minus className="h-4 w-4" />
-                    </button>
-                    <span className="w-8 text-center font-medium">{item.quantity}</span>
-                    <button
-                      onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                      className="p-1 border border-gray-300 rounded hover:bg-gray-50"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                        Email Address *
+                      </label>
+                      <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        value={customerInfo.email}
+                        onChange={handleCustomerInfoChange}
+                        className={`block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0d0499] ${
+                          errors.email ? 'border-red-300' : 'border-gray-300'
+                        }`}
+                        placeholder="john@example.com"
+                      />
+                      {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+                    </div>
+
+                    <div>
+                      <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                        Phone Number *
+                      </label>
+                      <input
+                        type="tel"
+                        id="phone"
+                        name="phone"
+                        value={customerInfo.phone}
+                        onChange={handleCustomerInfoChange}
+                        className={`block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0d0499] ${
+                          errors.phone ? 'border-red-300' : 'border-gray-300'
+                        }`}
+                        placeholder="+234 XXX XXX XXXX"
+                      />
+                      {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
+                    </div>
                   </div>
 
-                  <button
-                    onClick={() => removeItem(item.product.id)}
-                    className="p-2 text-gray-400 hover:text-red-500 transition-colors"
-                  >
-                    <Trash2 className="h-5 w-5" />
-                  </button>
+                  <div>
+                    <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
+                      Street Address *
+                    </label>
+                    <input
+                      type="text"
+                      id="address"
+                      name="address"
+                      value={shippingAddress.address}
+                      onChange={handleShippingChange}
+                      className={`block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0d0499] ${
+                        errors.address ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                      placeholder="123 Main Street"
+                    />
+                    {errors.address && <p className="mt-1 text-sm text-red-600">{errors.address}</p>}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
+                        City *
+                      </label>
+                      <input
+                        type="text"
+                        id="city"
+                        name="city"
+                        value={shippingAddress.city}
+                        onChange={handleShippingChange}
+                        className={`block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0d0499] ${
+                          errors.city ? 'border-red-300' : 'border-gray-300'
+                        }`}
+                        placeholder="Lagos"
+                      />
+                      {errors.city && <p className="mt-1 text-sm text-red-600">{errors.city}</p>}
+                    </div>
+
+                    <div>
+                      <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-1">
+                        State *
+                      </label>
+                      <select
+                        id="state"
+                        name="state"
+                        value={shippingAddress.state}
+                        onChange={handleShippingChange}
+                        className={`block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0d0499] ${
+                          errors.state ? 'border-red-300' : 'border-gray-300'
+                        }`}
+                      >
+                        <option value="">Select State</option>
+                        {nigerianStates.map(state => (
+                          <option key={state} value={state}>{state}</option>
+                        ))}
+                      </select>
+                      {errors.state && <p className="mt-1 text-sm text-red-600">{errors.state}</p>}
+                    </div>
+
+                    <div>
+                      <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700 mb-1">
+                        Postal Code
+                      </label>
+                      <input
+                        type="text"
+                        id="postalCode"
+                        name="postalCode"
+                        value={shippingAddress.postalCode}
+                        onChange={handleShippingChange}
+                        className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0d0499]"
+                        placeholder="100001"
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                <div className="mt-4 flex justify-between items-center">
-                  <span className="text-sm text-gray-600">
-                    {item.quantity} × {formatPrice(item.product.price)}
-                  </span>
-                  <span className="text-lg font-bold text-gray-900">
-                    {formatPrice(item.product.price * item.quantity)}
-                  </span>
+                <button
+                  onClick={handleContinueToPayment}
+                  className="w-full mt-6 bg-[#0d0499] text-white px-6 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors"
+                >
+                  Continue to Payment
+                </button>
+              </div>
+            )}
+
+            {checkoutStep === 'payment' && (
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <h2 className="text-xl font-semibold mb-6">Payment Method</h2>
+
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                  <h3 className="font-medium text-gray-900 mb-2">Shipping to:</h3>
+                  <p className="text-sm text-gray-600">{customerInfo.fullName}</p>
+                  <p className="text-sm text-gray-600">{shippingAddress.address}</p>
+                  <p className="text-sm text-gray-600">
+                    {shippingAddress.city}, {shippingAddress.state}
+                    {shippingAddress.postalCode && ` ${shippingAddress.postalCode}`}
+                  </p>
+                  <p className="text-sm text-gray-600">{customerInfo.phone}</p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="border-2 border-[#0d0499] rounded-lg p-4">
+                    <div className="flex items-center mb-4">
+                      <CreditCard className="h-5 w-5 text-[#0d0499] mr-2" />
+                      <span className="font-medium">Pay with Paystack</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Secure payment via card, bank transfer, or USSD
+                    </p>
+                    <PaystackCheckout
+                      amount={finalTotal}
+                      email={customerInfo.email}
+                      onSuccess={handlePaystackSuccess}
+                      onClose={handlePaystackClose}
+                      disabled={isProcessing}
+                    />
+                  </div>
                 </div>
               </div>
-            ))}
+            )}
           </div>
 
           <div className="lg:col-span-1">
@@ -149,7 +484,7 @@ const CartPage: React.FC = () => {
 
               <div className="space-y-3 mb-4">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Subtotal</span>
+                  <span className="text-gray-600">Subtotal ({state.itemCount} items)</span>
                   <span className="font-medium">{formatPrice(state.total)}</span>
                 </div>
                 <div className="flex justify-between">
@@ -180,11 +515,11 @@ const CartPage: React.FC = () => {
                 </div>
               )}
 
-              {!showCheckout ? (
-                <>
+              {checkoutStep === 'cart' && (
+                <div className="space-y-3">
                   <button
-                    onClick={() => setShowCheckout(true)}
-                    className="w-full bg-[#0d0499] text-white px-6 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors mb-3"
+                    onClick={() => setCheckoutStep('shipping')}
+                    className="w-full bg-[#0d0499] text-white px-6 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors"
                   >
                     Proceed to Checkout
                   </button>
@@ -195,99 +530,20 @@ const CartPage: React.FC = () => {
                   >
                     Continue Shopping
                   </button>
-                </>
-              ) : (
-                <div className="space-y-4">
-                  <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                      Email Address
-                    </label>
-                    <input
-                      type="email"
-                      id="email"
-                      value={customerEmail}
-                      onChange={(e) => setCustomerEmail(e.target.value)}
-                      placeholder="your@email.com"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0d0499] focus:border-transparent"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Select Payment Method
-                    </label>
-
-                    <label className="flex items-center p-3 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-[#0d0499] transition-colors">
-                      <input
-                        type="radio"
-                        name="payment"
-                        value="paystack"
-                        checked={paymentGateway === 'paystack'}
-                        onChange={() => setPaymentGateway('paystack')}
-                        className="mr-3"
-                      />
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-900">Paystack</div>
-                        <div className="text-sm text-gray-500">Pay with card, bank transfer, or USSD</div>
-                      </div>
-                      <img src="https://paystack.com/assets/img/logo/logo.svg" alt="Paystack" className="h-6" />
-                    </label>
-
-                    <label className="flex items-center p-3 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-[#0d0499] transition-colors">
-                      <input
-                        type="radio"
-                        name="payment"
-                        value="stripe"
-                        checked={paymentGateway === 'stripe'}
-                        onChange={() => setPaymentGateway('stripe')}
-                        className="mr-3"
-                      />
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-900">Stripe</div>
-                        <div className="text-sm text-gray-500">International card payments</div>
-                      </div>
-                    </label>
-                  </div>
-
-                  {paymentGateway === 'paystack' && customerEmail && (
-                    <PaystackCheckout
-                      amount={finalTotal}
-                      email={customerEmail}
-                      onSuccess={handlePaystackSuccess}
-                      onClose={handlePaystackClose}
-                    />
-                  )}
-
-                  {paymentGateway === 'stripe' && (
-                    <button
-                      onClick={handleStripeCheckout}
-                      className="w-full bg-[#635bff] text-white px-6 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors"
-                    >
-                      Pay with Stripe
-                    </button>
-                  )}
-
-                  <button
-                    onClick={() => setShowCheckout(false)}
-                    className="w-full border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
-                  >
-                    Back to Cart
-                  </button>
                 </div>
               )}
 
               <div className="mt-6 space-y-2">
                 <div className="flex items-center text-sm text-gray-600">
-                  <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                  <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
                   Secure checkout
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
-                  <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                  <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
                   30-day return policy
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
-                  <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                  <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
                   Free shipping over ₦15,000
                 </div>
               </div>
