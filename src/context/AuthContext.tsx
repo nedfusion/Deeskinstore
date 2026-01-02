@@ -1,6 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { User } from '../types';
-import { supabase } from '../lib/supabase';
 
 interface AuthState {
   user: User | null;
@@ -21,113 +20,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [state, setState] = useState<AuthState>({
     user: null,
     isAuthenticated: false,
-    isLoading: true,
+    isLoading: false,
   });
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      (async () => {
-        if (session?.user) {
-          const { data: userData } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', session.user.id)
-            .maybeSingle();
-
-          if (userData) {
-            const [firstName, ...lastNameParts] = userData.full_name.split(' ');
-            setState({
-              user: {
-                id: userData.id,
-                email: userData.email,
-                firstName: firstName || '',
-                lastName: lastNameParts.join(' ') || '',
-                phone: userData.phone || undefined,
-                addresses: [],
-                orderHistory: [],
-              },
-              isAuthenticated: true,
-              isLoading: false,
-            });
-          } else {
-            setState({ user: null, isAuthenticated: false, isLoading: false });
-          }
-        } else {
-          setState({ user: null, isAuthenticated: false, isLoading: false });
-        }
-      })();
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      (async () => {
-        if (session?.user) {
-          const { data: userData } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', session.user.id)
-            .maybeSingle();
-
-          if (userData) {
-            const [firstName, ...lastNameParts] = userData.full_name.split(' ');
-            setState({
-              user: {
-                id: userData.id,
-                email: userData.email,
-                firstName: firstName || '',
-                lastName: lastNameParts.join(' ') || '',
-                phone: userData.phone || undefined,
-                addresses: [],
-                orderHistory: [],
-              },
-              isAuthenticated: true,
-              isLoading: false,
-            });
-          } else {
-            setState({ user: null, isAuthenticated: false, isLoading: false });
-          }
-        } else {
-          setState({ user: null, isAuthenticated: false, isLoading: false });
-        }
-      })();
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   const login = async (email: string, password: string) => {
     setState(prev => ({ ...prev, isLoading: true }));
     try {
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      // Mock login - in real implementation, this would call your auth API
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const mockUser: User = {
+        id: '1',
         email,
-        password,
+        firstName: 'Jane',
+        lastName: 'Doe',
+        addresses: [],
+        orderHistory: [],
+      };
+
+      setState({
+        user: mockUser,
+        isAuthenticated: true,
+        isLoading: false,
       });
-
-      if (authError) throw authError;
-
-      if (authData.user) {
-        const { data: userData } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', authData.user.id)
-          .maybeSingle();
-
-        if (userData) {
-          const [firstName, ...lastNameParts] = userData.full_name.split(' ');
-          setState({
-            user: {
-              id: userData.id,
-              email: userData.email,
-              firstName: firstName || '',
-              lastName: lastNameParts.join(' ') || '',
-              phone: userData.phone || undefined,
-              addresses: [],
-              orderHistory: [],
-            },
-            isAuthenticated: true,
-            isLoading: false,
-          });
-        }
-      }
     } catch (error) {
       setState(prev => ({ ...prev, isLoading: false }));
       throw error;
@@ -137,48 +52,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const register = async (userData: Partial<User>) => {
     setState(prev => ({ ...prev, isLoading: true }));
     try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      // Mock registration
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const newUser: User = {
+        id: Date.now().toString(),
         email: userData.email || '',
-        password: userData.password || '',
+        firstName: userData.firstName || '',
+        lastName: userData.lastName || '',
+        addresses: [],
+        orderHistory: [],
+      };
+
+      setState({
+        user: newUser,
+        isAuthenticated: true,
+        isLoading: false,
       });
-
-      if (authError) throw authError;
-
-      if (authData.user) {
-        const fullName = `${userData.firstName || ''} ${userData.lastName || ''}`.trim();
-        const { error: insertError } = await supabase
-          .from('users')
-          .insert({
-            id: authData.user.id,
-            email: userData.email || '',
-            full_name: fullName,
-            phone: userData.phone || null,
-          });
-
-        if (insertError) throw insertError;
-
-        setState({
-          user: {
-            id: authData.user.id,
-            email: userData.email || '',
-            firstName: userData.firstName || '',
-            lastName: userData.lastName || '',
-            phone: userData.phone,
-            addresses: [],
-            orderHistory: [],
-          },
-          isAuthenticated: true,
-          isLoading: false,
-        });
-      }
     } catch (error) {
       setState(prev => ({ ...prev, isLoading: false }));
       throw error;
     }
   };
 
-  const logout = async () => {
-    await supabase.auth.signOut();
+  const logout = () => {
     setState({
       user: null,
       isAuthenticated: false,
