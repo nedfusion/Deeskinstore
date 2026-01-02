@@ -1,29 +1,27 @@
 import React, { useState } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Search, User, ShoppingBag, Menu, X, ChevronDown } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 
-interface HeaderProps {
-  currentPage: string;
-  onNavigate: (page: string) => void;
-}
-
-const Header: React.FC<HeaderProps> = ({ currentPage, onNavigate }) => {
+const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProductsOpen, setIsProductsOpen] = useState(false);
   const { state: cartState } = useCart();
   const { state: authState } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const navigation = [
-    { name: 'HOME', page: 'home' },
-    { name: 'ABOUT', page: 'about' },
+    { name: 'HOME', path: '/' },
+    { name: 'ABOUT', path: '/about' },
     {
       name: 'PRODUCTS',
-      page: 'products',
+      path: '/products',
       submenu: [
-        { 
-          name: 'Face (Skincare)', 
-          page: 'products', 
+        {
+          name: 'Face (Skincare)',
+          path: '/products',
           category: 'face',
           subcategories: [
             'Cleansers/Washes',
@@ -38,9 +36,9 @@ const Header: React.FC<HeaderProps> = ({ currentPage, onNavigate }) => {
             'Accessories'
           ]
         },
-        { 
-          name: 'Bath and Body (Skincare)', 
-          page: 'products', 
+        {
+          name: 'Bath and Body (Skincare)',
+          path: '/products',
           category: 'bath-body',
           subcategories: [
             'Body Washes',
@@ -52,9 +50,9 @@ const Header: React.FC<HeaderProps> = ({ currentPage, onNavigate }) => {
             'Bundles/Routines'
           ]
         },
-        { 
-          name: 'Shop by Skin Concerns', 
-          page: 'products', 
+        {
+          name: 'Shop by Skin Concerns',
+          path: '/products',
           category: 'skin-concerns',
           subcategories: [
             'Face/Body Acne & Blemishes',
@@ -67,20 +65,19 @@ const Header: React.FC<HeaderProps> = ({ currentPage, onNavigate }) => {
             'Body Care'
           ]
         },
-        { name: 'Asian Skincare', page: 'products', category: 'asian' },
-        { name: 'African Skincare', page: 'products', category: 'african' },
-        { name: 'Under 10K Skincare', page: 'products', category: 'under-10k' },
+        { name: 'Asian Skincare', path: '/products', category: 'asian' },
+        { name: 'African Skincare', path: '/products', category: 'african' },
+        { name: 'Under 10K Skincare', path: '/products', category: 'under-10k' },
       ]
     },
-    { name: 'CONSULTATION', page: 'consultation' },
-    { name: 'GIFT CARDS', page: 'gift-cards' },
-    { name: 'BLOG', page: 'blog' },
-    { name: 'FAQ', page: 'faq' },
+    { name: 'CONSULTATION', path: '/consultation' },
+    { name: 'GIFT CARDS', path: '/gift-cards' },
+    { name: 'BLOG', path: '/blog' },
+    { name: 'FAQ', path: '/faq' },
   ];
 
   return (
     <header className="bg-white shadow-lg sticky top-0 z-50">
-      {/* Top bar */}
       <div className="bg-[#0d0499] text-white py-2">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center text-sm">
@@ -99,21 +96,18 @@ const Header: React.FC<HeaderProps> = ({ currentPage, onNavigate }) => {
         </div>
       </div>
 
-      {/* Main header */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo */}
           <div className="flex-shrink-0">
-            <button onClick={() => onNavigate('home')} className="flex items-center">
+            <Link to="/" className="flex items-center">
               <img
                 src="/Deeskinstore_Logo-removebg-preview.png"
                 alt="DeeSkinStore"
                 className="h-24 w-auto hover:opacity-80 transition-opacity"
               />
-            </button>
+            </Link>
           </div>
 
-          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
             {navigation.map((item) => (
               <div key={item.name} className="relative">
@@ -131,28 +125,24 @@ const Header: React.FC<HeaderProps> = ({ currentPage, onNavigate }) => {
                       <div className="absolute top-full left-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-100 py-2 z-50 max-h-96 overflow-y-auto">
                         {item.submenu.map((subItem) => (
                           <div key={subItem.name} className="mb-2">
-                            <button
-                              onClick={() => {
-                                onNavigate(subItem.page);
-                                setIsProductsOpen(false);
-                              }}
+                            <Link
+                              to={subItem.path}
+                              onClick={() => setIsProductsOpen(false)}
                               className="block w-full text-left px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-[#c6f2f4] hover:text-[#0d0499] transition-colors"
                             >
                               {subItem.name}
-                            </button>
+                            </Link>
                             {subItem.subcategories && (
                               <div className="ml-4 space-y-1">
                                 {subItem.subcategories.map((subcategory) => (
-                                  <button
+                                  <Link
                                     key={subcategory}
-                                    onClick={() => {
-                                      onNavigate(subItem.page);
-                                      setIsProductsOpen(false);
-                                    }}
+                                    to={subItem.path}
+                                    onClick={() => setIsProductsOpen(false)}
                                     className="block w-full text-left px-3 py-1 text-xs text-gray-600 hover:bg-gray-50 hover:text-[#0d0499] transition-colors rounded"
                                   >
                                     {subcategory}
-                                  </button>
+                                  </Link>
                                 ))}
                               </div>
                             )}
@@ -162,37 +152,40 @@ const Header: React.FC<HeaderProps> = ({ currentPage, onNavigate }) => {
                     )}
                   </div>
                 ) : (
-                  <button
-                    onClick={() => onNavigate(item.page)}
+                  <Link
+                    to={item.path}
                     className={`text-gray-700 hover:text-[#0d0499] font-medium transition-colors ${
-                      currentPage === item.page ? 'text-[#0d0499]' : ''
+                      location.pathname === item.path ? 'text-[#0d0499]' : ''
                     }`}
                   >
                     {item.name}
-                  </button>
+                  </Link>
                 )}
               </div>
             ))}
+
+            <Link
+              to="/admin"
+              className="text-gray-700 hover:text-[#0d0499] font-medium transition-colors text-sm"
+            >
+              ADMIN
+            </Link>
           </nav>
 
-          {/* Right side icons */}
           <div className="flex items-center space-x-4">
-            {/* Search */}
             <button className="p-2 text-gray-600 hover:text-[#0d0499] transition-colors">
               <Search className="h-5 w-5" />
             </button>
 
-            {/* User account */}
             <button
-              onClick={() => onNavigate(authState.isAuthenticated ? 'account' : 'auth')}
+              onClick={() => navigate(authState.isAuthenticated ? '/account' : '/auth')}
               className="p-2 text-gray-600 hover:text-[#0d0499] transition-colors"
             >
               <User className="h-5 w-5" />
             </button>
 
-            {/* Shopping cart */}
             <button
-              onClick={() => onNavigate('cart')}
+              onClick={() => navigate('/cart')}
               className="p-2 text-gray-600 hover:text-[#0d0499] transition-colors relative"
             >
               <ShoppingBag className="h-5 w-5" />
@@ -203,7 +196,6 @@ const Header: React.FC<HeaderProps> = ({ currentPage, onNavigate }) => {
               )}
             </button>
 
-            {/* Mobile menu button */}
             <button
               className="md:hidden p-2 text-gray-600 hover:text-[#0d0499]"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -214,39 +206,41 @@ const Header: React.FC<HeaderProps> = ({ currentPage, onNavigate }) => {
         </div>
       </div>
 
-      {/* Mobile menu */}
       {isMenuOpen && (
         <div className="md:hidden bg-white border-t border-gray-200">
           <div className="px-4 py-2 space-y-1">
             {navigation.map((item) => (
               <div key={item.name}>
-                <button
-                  onClick={() => {
-                    onNavigate(item.page);
-                    setIsMenuOpen(false);
-                  }}
+                <Link
+                  to={item.path}
+                  onClick={() => setIsMenuOpen(false)}
                   className="block w-full text-left px-3 py-2 text-gray-700 hover:text-[#0d0499] font-medium"
                 >
                   {item.name}
-                </button>
+                </Link>
                 {item.submenu && (
                   <div className="ml-4 space-y-1">
                     {item.submenu.map((subItem) => (
-                      <button
+                      <Link
                         key={subItem.name}
-                        onClick={() => {
-                          onNavigate(subItem.page);
-                          setIsMenuOpen(false);
-                        }}
+                        to={subItem.path}
+                        onClick={() => setIsMenuOpen(false)}
                         className="block w-full text-left px-3 py-1 text-sm text-gray-600 hover:text-[#0d0499]"
                       >
                         {subItem.name}
-                      </button>
+                      </Link>
                     ))}
                   </div>
                 )}
               </div>
             ))}
+            <Link
+              to="/admin"
+              onClick={() => setIsMenuOpen(false)}
+              className="block w-full text-left px-3 py-2 text-gray-700 hover:text-[#0d0499] font-medium"
+            >
+              ADMIN
+            </Link>
           </div>
         </div>
       )}

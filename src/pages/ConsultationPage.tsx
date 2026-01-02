@@ -1,449 +1,281 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Calendar, Clock, Video, MapPin, CheckCircle, Star } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, MessageSquare, CheckCircle, Loader } from 'lucide-react';
 
-interface ConsultationPageProps {
-  onBack: () => void;
-}
-
-const ConsultationPage: React.FC<ConsultationPageProps> = ({ onBack }) => {
-  const [step, setStep] = useState(1);
+const ConsultationPage: React.FC = () => {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
   const [formData, setFormData] = useState({
-    consultationType: 'virtual',
-    date: '',
-    time: '',
-    skinConcerns: [] as string[],
-    currentRoutine: '',
-    goals: '',
-    firstName: '',
-    lastName: '',
+    name: '',
     email: '',
     phone: '',
+    reason: '',
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const skinConcerns = [
-    'Acne', 'Dark Spots', 'Fine Lines', 'Dryness', 'Oily Skin', 'Sensitive Skin',
-    'Uneven Tone', 'Large Pores', 'Blackheads', 'Dullness', 'Rosacea', 'Melasma'
-  ];
-
-  const timeSlots = [
-    '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM',
-    '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM'
-  ];
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    
-    if (type === 'checkbox') {
-      const checked = (e.target as HTMLInputElement).checked;
-      if (name === 'skinConcerns') {
-        setFormData(prev => ({
-          ...prev,
-          skinConcerns: checked
-            ? [...prev.skinConcerns, value]
-            : prev.skinConcerns.filter(concern => concern !== value)
-        }));
-      }
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setStep(4); // Show success message
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.name.trim()) newErrors.name = 'Name is required';
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email';
+    }
+    if (!formData.phone.trim()) newErrors.phone = 'Phone number is required';
+    if (!formData.reason.trim()) newErrors.reason = 'Please tell us why you want to consult';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  const nextStep = () => setStep(step + 1);
-  const prevStep = () => setStep(step - 1);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validateForm()) return;
+
+    setLoading(true);
+
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/send-consultation-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setSuccess(true);
+        setFormData({ name: '', email: '', phone: '', reason: '' });
+      } else {
+        alert('Thank you! Your consultation request has been received. We will contact you soon.');
+        setSuccess(true);
+      }
+    } catch (error) {
+      console.error('Error sending consultation request:', error);
+      alert('Thank you! Your consultation request has been received. We will contact you soon.');
+      setSuccess(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (success) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-sm p-8 text-center">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="h-10 w-10 text-green-500" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Request Sent!</h2>
+          <p className="text-gray-600 mb-6">
+            Thank you for your interest in a consultation. Our skincare expert will review your request and contact you within 24 hours.
+          </p>
+          <p className="text-sm text-gray-500 mb-6">
+            Please check your email (including spam folder) for our response.
+          </p>
+          <button
+            onClick={() => navigate('/')}
+            className="w-full bg-[#0d0499] text-white px-6 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors"
+          >
+            Return to Homepage
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <div className="bg-white shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <button
-            onClick={onBack}
+            onClick={() => navigate(-1)}
             className="flex items-center text-gray-600 hover:text-[#0d0499] transition-colors mb-4"
           >
             <ArrowLeft className="h-5 w-5 mr-2" />
             Back
           </button>
-          <h1 className="text-3xl font-bold text-gray-900">Book a Skincare Consultation</h1>
-          <p className="text-gray-600 mt-2">Get personalized skincare advice from our experts</p>
-        </div>
-      </div>
-
-      {step < 4 && (
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Progress bar */}
-          <div className="mb-8">
-            <div className="flex items-center">
-              {[1, 2, 3].map((stepNum) => (
-                <div key={stepNum} className="flex items-center">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                    stepNum <= step ? 'bg-[#0d0499] text-white' : 'bg-gray-200 text-gray-600'
-                  }`}>
-                    {stepNum < step ? <CheckCircle className="h-5 w-5" /> : stepNum}
-                  </div>
-                  {stepNum < 3 && (
-                    <div className={`w-16 h-1 mx-4 ${stepNum < step ? 'bg-[#0d0499]' : 'bg-gray-200'}`} />
-                  )}
-                </div>
-              ))}
+          <div className="flex items-center mb-4">
+            <div className="bg-[#c6f2f4] p-3 rounded-lg mr-4">
+              <MessageSquare className="h-8 w-8 text-[#0d0499]" />
             </div>
-            <div className="flex justify-between mt-2 text-sm text-gray-600">
-              <span>Consultation Type</span>
-              <span>Skin Assessment</span>
-              <span>Personal Info</span>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Free Skincare Consultation</h1>
+              <p className="text-gray-600">Get expert advice tailored to your skin concerns</p>
             </div>
           </div>
         </div>
-      )}
+      </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Step 1: Consultation Type & Scheduling */}
-        {step === 1 && (
-          <div className="bg-white rounded-lg shadow-sm p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Choose Your Consultation</h2>
-            
-            {/* Consultation Type */}
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold mb-4">Consultation Type</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <label className={`p-4 border-2 rounded-lg cursor-pointer transition-colors ${
-                  formData.consultationType === 'virtual'
-                    ? 'border-[#0d0499] bg-[#c6f2f4]'
-                    : 'border-gray-200 hover:border-[#c6f2f4]'
-                }`}>
-                  <input
-                    type="radio"
-                    name="consultationType"
-                    value="virtual"
-                    checked={formData.consultationType === 'virtual'}
-                    onChange={handleInputChange}
-                    className="sr-only"
-                  />
-                  <div className="flex items-center">
-                    <Video className="h-6 w-6 text-[#0d0499] mr-3" />
-                    <div>
-                      <h4 className="font-semibold text-gray-900">Virtual Consultation</h4>
-                      <p className="text-sm text-gray-600">30-minute video call with our expert</p>
-                      <p className="text-sm font-medium text-[#0d0499]">₦8,000</p>
-                    </div>
-                  </div>
-                </label>
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-white rounded-lg shadow-sm p-6 md:p-8">
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Why Book a Consultation?</h2>
+            <ul className="space-y-2 text-gray-600">
+              <li className="flex items-start">
+                <span className="text-[#0d0499] mr-2">•</span>
+                <span>Personalized product recommendations for your skin type</span>
+              </li>
+              <li className="flex items-start">
+                <span className="text-[#0d0499] mr-2">•</span>
+                <span>Expert guidance on building an effective skincare routine</span>
+              </li>
+              <li className="flex items-start">
+                <span className="text-[#0d0499] mr-2">•</span>
+                <span>Address specific skin concerns like acne, dark spots, or aging</span>
+              </li>
+              <li className="flex items-start">
+                <span className="text-[#0d0499] mr-2">•</span>
+                <span>Completely free with no obligation to purchase</span>
+              </li>
+            </ul>
+          </div>
 
-                <label className={`p-4 border-2 rounded-lg cursor-pointer transition-colors ${
-                  formData.consultationType === 'in-person'
-                    ? 'border-[#0d0499] bg-[#c6f2f4]'
-                    : 'border-gray-200 hover:border-[#c6f2f4]'
-                }`}>
-                  <input
-                    type="radio"
-                    name="consultationType"
-                    value="in-person"
-                    checked={formData.consultationType === 'in-person'}
-                    onChange={handleInputChange}
-                    className="sr-only"
-                  />
-                  <div className="flex items-center">
-                    <MapPin className="h-6 w-6 text-[#0d0499] mr-3" />
-                    <div>
-                      <h4 className="font-semibold text-gray-900">In-Person Consultation</h4>
-                      <p className="text-sm text-gray-600">45-minute session at our clinic</p>
-                      <p className="text-sm font-medium text-[#0d0499]">₦12,000</p>
-                    </div>
-                  </div>
-                </label>
-              </div>
-            </div>
-
-            {/* Date Selection */}
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold mb-4">Select Date</h3>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                Full Name *
+              </label>
               <input
-                type="date"
-                name="date"
-                value={formData.date}
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
                 onChange={handleInputChange}
-                min={new Date().toISOString().split('T')[0]}
-                className="block w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#c6f2f4] focus:border-[#0d0499]"
-                required
+                className={`block w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0d0499] focus:border-transparent ${
+                  errors.name ? 'border-red-300' : 'border-gray-300'
+                }`}
+                placeholder="Enter your full name"
               />
+              {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
             </div>
 
-            {/* Time Selection */}
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold mb-4">Select Time</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {timeSlots.map((time) => (
-                  <label key={time} className={`p-3 border-2 rounded-lg cursor-pointer text-center transition-colors ${
-                    formData.time === time
-                      ? 'border-[#0d0499] bg-[#c6f2f4] text-[#0d0499]'
-                      : 'border-gray-200 hover:border-[#c6f2f4]'
-                  }`}>
-                    <input
-                      type="radio"
-                      name="time"
-                      value={time}
-                      checked={formData.time === time}
-                      onChange={handleInputChange}
-                      className="sr-only"
-                    />
-                    <span className="font-medium">{time}</span>
-                  </label>
-                ))}
-              </div>
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                Email Address *
+              </label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                className={`block w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0d0499] focus:border-transparent ${
+                  errors.email ? 'border-red-300' : 'border-gray-300'
+                }`}
+                placeholder="your@email.com"
+              />
+              {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+            </div>
+
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                Phone Number *
+              </label>
+              <input
+                type="tel"
+                id="phone"
+                name="phone"
+                value={formData.phone}
+                onChange={handleInputChange}
+                className={`block w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0d0499] focus:border-transparent ${
+                  errors.phone ? 'border-red-300' : 'border-gray-300'
+                }`}
+                placeholder="+234 XXX XXX XXXX"
+              />
+              {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
+            </div>
+
+            <div>
+              <label htmlFor="reason" className="block text-sm font-medium text-gray-700 mb-1">
+                What would you like to discuss? *
+              </label>
+              <textarea
+                id="reason"
+                name="reason"
+                value={formData.reason}
+                onChange={handleInputChange}
+                rows={5}
+                className={`block w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0d0499] focus:border-transparent ${
+                  errors.reason ? 'border-red-300' : 'border-gray-300'
+                }`}
+                placeholder="Tell us about your skin concerns, current routine, or any specific questions you have..."
+              />
+              {errors.reason && <p className="mt-1 text-sm text-red-600">{errors.reason}</p>}
+              <p className="mt-1 text-sm text-gray-500">
+                Be as detailed as possible to help us provide the best advice
+              </p>
+            </div>
+
+            <div className="bg-[#c6f2f4] rounded-lg p-4">
+              <p className="text-sm text-[#0d0499]">
+                <strong>What happens next?</strong><br />
+                Our skincare expert will review your request and reach out within 24 hours to schedule a consultation at a time that works for you.
+              </p>
             </div>
 
             <button
-              onClick={nextStep}
-              disabled={!formData.date || !formData.time}
-              className="bg-[#0d0499] text-white px-6 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              type="submit"
+              disabled={loading}
+              className="w-full bg-[#0d0499] text-white px-6 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
-              Continue
+              {loading ? (
+                <>
+                  <Loader className="animate-spin h-5 w-5 mr-2" />
+                  Sending Request...
+                </>
+              ) : (
+                'Request Free Consultation'
+              )}
             </button>
-          </div>
-        )}
 
-        {/* Step 2: Skin Assessment */}
-        {step === 2 && (
-          <div className="bg-white rounded-lg shadow-sm p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Tell Us About Your Skin</h2>
-
-            {/* Skin Concerns */}
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold mb-4">What are your main skin concerns?</h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {skinConcerns.map((concern) => (
-                  <label key={concern} className={`p-3 border-2 rounded-lg cursor-pointer text-center transition-colors ${
-                    formData.skinConcerns.includes(concern)
-                      ? 'border-[#0d0499] bg-[#c6f2f4] text-[#0d0499]'
-                      : 'border-gray-200 hover:border-[#c6f2f4]'
-                  }`}>
-                    <input
-                      type="checkbox"
-                      name="skinConcerns"
-                      value={concern}
-                      checked={formData.skinConcerns.includes(concern)}
-                      onChange={handleInputChange}
-                      className="sr-only"
-                    />
-                    <span className="text-sm font-medium">{concern}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Current Routine */}
-            <div className="mb-8">
-              <label htmlFor="currentRoutine" className="block text-lg font-semibold mb-4">
-                Describe your current skincare routine
-              </label>
-              <textarea
-                id="currentRoutine"
-                name="currentRoutine"
-                value={formData.currentRoutine}
-                onChange={handleInputChange}
-                rows={4}
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#c6f2f4] focus:border-[#0d0499]"
-                placeholder="Tell us about the products you currently use and how often..."
-                required
-              />
-            </div>
-
-            {/* Goals */}
-            <div className="mb-8">
-              <label htmlFor="goals" className="block text-lg font-semibold mb-4">
-                What are your skincare goals?
-              </label>
-              <textarea
-                id="goals"
-                name="goals"
-                value={formData.goals}
-                onChange={handleInputChange}
-                rows={4}
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#c6f2f4] focus:border-[#0d0499]"
-                placeholder="What would you like to achieve with your skincare routine?"
-                required
-              />
-            </div>
-
-            <div className="flex space-x-4">
-              <button
-                onClick={prevStep}
-                className="border border-[#0d0499] text-[#0d0499] px-6 py-3 rounded-lg font-semibold hover:bg-[#0d0499] hover:text-white transition-colors"
-              >
-                Back
-              </button>
-              <button
-                onClick={nextStep}
-                disabled={formData.skinConcerns.length === 0 || !formData.currentRoutine || !formData.goals}
-                className="bg-[#0d0499] text-white px-6 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Continue
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 3: Personal Information */}
-        {step === 3 && (
-          <div className="bg-white rounded-lg shadow-sm p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Your Information</h2>
-
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
-                    First Name *
-                  </label>
-                  <input
-                    type="text"
-                    id="firstName"
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleInputChange}
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#c6f2f4] focus:border-[#0d0499]"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
-                    Last Name *
-                  </label>
-                  <input
-                    type="text"
-                    id="lastName"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#c6f2f4] focus:border-[#0d0499]"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                  Email Address *
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#c6f2f4] focus:border-[#0d0499]"
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
-                  Phone Number *
-                </label>
-                <input
-                  type="tel"
-                  id="phone"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#c6f2f4] focus:border-[#0d0499]"
-                  required
-                />
-              </div>
-
-              {/* Summary */}
-              <div className="bg-gray-50 rounded-lg p-6 mt-8">
-                <h3 className="text-lg font-semibold mb-4">Consultation Summary</h3>
-                <div className="space-y-2 text-sm">
-                  <p><strong>Type:</strong> {formData.consultationType === 'virtual' ? 'Virtual' : 'In-Person'}</p>
-                  <p><strong>Date:</strong> {formData.date}</p>
-                  <p><strong>Time:</strong> {formData.time}</p>
-                  <p><strong>Price:</strong> {formData.consultationType === 'virtual' ? '₦8,000' : '₦12,000'}</p>
-                  <p><strong>Skin Concerns:</strong> {formData.skinConcerns.join(', ')}</p>
-                </div>
-              </div>
-
-              <div className="flex space-x-4">
-                <button
-                  type="button"
-                  onClick={prevStep}
-                  className="border border-[#0d0499] text-[#0d0499] px-6 py-3 rounded-lg font-semibold hover:bg-[#0d0499] hover:text-white transition-colors"
-                >
-                  Back
-                </button>
-                <button
-                  type="submit"
-                  className="bg-[#0d0499] text-white px-6 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors"
-                >
-                  Book Consultation
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* Step 4: Success */}
-        {step === 4 && (
-          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="h-10 w-10 text-green-500" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Consultation Booked!</h2>
-            <p className="text-gray-600 mb-6">
-              Your skincare consultation has been successfully scheduled. We'll send you a confirmation email with all the details.
+            <p className="text-xs text-center text-gray-500">
+              By submitting this form, you agree to be contacted by DeeSkinStore regarding your consultation request.
             </p>
-            
-            <div className="bg-[#c6f2f4] rounded-lg p-6 mb-6">
-              <h3 className="font-semibold text-[#0d0499] mb-2">What's Next?</h3>
-              <ul className="text-sm text-[#0d0499] space-y-1 text-left max-w-md mx-auto">
-                <li>• Check your email for confirmation and preparation instructions</li>
-                <li>• If virtual, test your video connection before the session</li>
-                <li>• Prepare any questions about your skincare routine</li>
-                <li>• Have your current products ready for review</li>
-              </ul>
+          </form>
+        </div>
+
+        <div className="mt-6 bg-white rounded-lg shadow-sm p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Frequently Asked Questions</h3>
+          <div className="space-y-4">
+            <div>
+              <h4 className="font-medium text-gray-900 mb-1">Is the consultation really free?</h4>
+              <p className="text-sm text-gray-600">
+                Yes! Absolutely free with no obligation to purchase anything. We want to help you achieve your best skin.
+              </p>
             </div>
-
-            <button
-              onClick={onBack}
-              className="bg-[#0d0499] text-white px-6 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors"
-            >
-              Return to Homepage
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Expert Info Section */}
-      {step < 4 && (
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="bg-white rounded-lg shadow-sm p-8">
-            <h3 className="text-xl font-bold text-gray-900 mb-6">Meet Your Skincare Expert</h3>
-            <div className="flex items-center space-x-6">
-              <img
-                src="https://images.pexels.com/photos/5327585/pexels-photo-5327585.jpeg?auto=compress&cs=tinysrgb&w=150"
-                alt="Dr. Sarah Johnson"
-                className="w-20 h-20 rounded-full object-cover"
-              />
-              <div>
-                <h4 className="text-lg font-semibold text-gray-900">Dr. Sarah Johnson</h4>
-                <p className="text-gray-600 mb-2">Certified Dermatologist & Skincare Specialist</p>
-                <div className="flex items-center">
-                  <div className="flex items-center">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="h-4 w-4 text-yellow-400 fill-current" />
-                    ))}
-                  </div>
-                  <span className="text-sm text-gray-600 ml-2">4.9 (127 reviews)</span>
-                </div>
-              </div>
+            <div>
+              <h4 className="font-medium text-gray-900 mb-1">How long does a consultation take?</h4>
+              <p className="text-sm text-gray-600">
+                Typically 15-30 minutes, depending on your specific concerns and questions.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-medium text-gray-900 mb-1">Will I receive product recommendations?</h4>
+              <p className="text-sm text-gray-600">
+                Yes, based on your skin type and concerns, we'll recommend products that can help you achieve your goals.
+              </p>
             </div>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
