@@ -35,17 +35,21 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onProductClick }) => {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative text-white overflow-hidden bg-gradient-to-r from-[#0d0499] via-[#0d0499] to-[#0a7d7e]">
+      <section className="relative text-white overflow-hidden">
+        <div className="absolute inset-0">
+          <img
+            src="./banner.png"
+            alt="DeeSkinStore Banner"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black bg-opacity-40"></div>
+        </div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 lg:py-48">
           <div className="max-w-3xl">
             <h1 className="text-4xl lg:text-6xl font-bold mb-6 leading-tight">
               Your Skin
               <span className="block text-[#c6f2f4]">Deserves the Best</span>
             </h1>
-            <p className="text-xl mb-8 text-gray-100 leading-relaxed">
-              Discover premium skincare products curated for every skin type and concern.
-              Transform your routine with science-backed formulations.
-            </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <button
                 onClick={() => onNavigate('products')}

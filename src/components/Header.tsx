@@ -97,13 +97,13 @@ const Header: React.FC = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex justify-between items-center h-24">
           <div className="flex-shrink-0">
             <Link to="/" className="flex items-center">
               <img
                 src="./deeskinstore_logo-removebg-preview.png"
                 alt="DeeSkinStore Logo"
-                className="h-12 w-auto hover:opacity-90 transition-opacity"
+                className="h-20 w-auto hover:opacity-90 transition-opacity"
               />
             </Link>
           </div>
