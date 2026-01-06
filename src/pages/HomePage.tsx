@@ -35,41 +35,35 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onProductClick }) => {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-[#c6f2f4] to-[#0d0499] text-white overflow-hidden">
-        <div className="absolute inset-0 bg-black opacity-20"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h1 className="text-4xl lg:text-6xl font-bold mb-6 leading-tight">
-                Your Skin
-                <span className="block text-[#c6f2f4]">Deserves the Best</span>
-              </h1>
-              <p className="text-xl mb-8 text-gray-100 leading-relaxed">
-                Discover premium skincare products curated for every skin type and concern. 
-                Transform your routine with science-backed formulations.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <button
-                  onClick={() => onNavigate('products')}
-                  className="bg-white text-[#0d0499] px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition-colors flex items-center justify-center"
-                >
-                  Shop Now
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </button>
-                <button
-                  onClick={() => onNavigate('consultation')}
-                  className="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white hover:text-[#0d0499] transition-colors"
-                >
-                  Free Consultation
-                </button>
-              </div>
-            </div>
-            <div className="relative">
-              <img
-                src="/Banner.png"
-                alt="DeeSkinStore Banner"
-                className="rounded-2xl shadow-2xl"
-              />
+      <section
+        className="relative text-white overflow-hidden bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: "url('/banner.png')" }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0d0499]/90 via-[#0d0499]/70 to-[#c6f2f4]/50"></div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 lg:py-48">
+          <div className="max-w-3xl">
+            <h1 className="text-4xl lg:text-6xl font-bold mb-6 leading-tight">
+              Your Skin
+              <span className="block text-[#c6f2f4]">Deserves the Best</span>
+            </h1>
+            <p className="text-xl mb-8 text-gray-100 leading-relaxed">
+              Discover premium skincare products curated for every skin type and concern.
+              Transform your routine with science-backed formulations.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <button
+                onClick={() => onNavigate('products')}
+                className="bg-white text-[#0d0499] px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition-colors flex items-center justify-center"
+              >
+                Shop Now
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </button>
+              <button
+                onClick={() => onNavigate('consultation')}
+                className="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white hover:text-[#0d0499] transition-colors"
+              >
+                Free Consultation
+              </button>
             </div>
           </div>
         </div>
