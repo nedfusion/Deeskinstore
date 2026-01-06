@@ -1,19 +1,13 @@
 DEESKINSTORE - DEPLOYMENT INSTRUCTIONS
 ======================================
 
-DEPLOYMENT PACKAGE: deeskinstore-deployment-final.tar.gz (103KB)
+DEPLOYMENT PACKAGE: deeskinstore-deployment.tar.gz (187KB)
 
 CONTENTS:
 ---------
-✓ All source code (src/)
-✓ Public assets (logo, banner images)
-✓ Database migrations (supabase/migrations/)
-✓ Edge functions (supabase/functions/)
-✓ Configuration files
-✓ Package files (package.json, package-lock.json)
-✓ .cpanel.yml deployment script
-✓ .htaccess for SPA routing
-✓ .env.example template
+✓ dist/ - Compiled production files ready to deploy
+✓ public/.htaccess - URL rewriting for SPA routing
+✓ supabase/ - Database migrations (including admin auth fix)
 
 DEPLOYMENT STEPS:
 -----------------
@@ -21,54 +15,68 @@ DEPLOYMENT STEPS:
 1. UPLOAD TO CPANEL
    - Log in to your cPanel account
    - Navigate to File Manager
-   - Upload deeskinstore-deployment-final.tar.gz to your home directory
-   - Extract the archive
+   - Go to public_html directory
+   - Upload deeskinstore-deployment.tar.gz
 
-2. INSTALL DEPENDENCIES
-   - Open Terminal in cPanel
-   - Navigate to the project directory
-   - Run: npm install
+2. EXTRACT FILES
+   - Right-click deeskinstore-deployment.tar.gz
+   - Select "Extract"
+   - Extract to current directory
 
-3. CONFIGURE ENVIRONMENT
-   - Copy .env.example to .env
-   - Update with your actual values:
-     * VITE_SUPABASE_URL (already configured)
-     * VITE_SUPABASE_ANON_KEY (already configured)
-     * VITE_PAYSTACK_PUBLIC_KEY (add your Paystack key)
+3. MOVE FILES TO PUBLIC_HTML
+   - Move all contents from dist/ folder directly to public_html/
+   - The structure should be:
+     public_html/
+       ├── index.html
+       ├── assets/
+       ├── .htaccess
+       ├── banner.png
+       └── deeskinstore_logo-removebg-preview.png
 
-4. BUILD FOR PRODUCTION
-   - In Terminal, run: npm run build
-   - This creates the dist/ folder with production files
+4. APPLY NEW DATABASE MIGRATION (CRITICAL!)
+   The admin authentication fix requires a new migration:
 
-5. DEPLOY TO PUBLIC_HTML
-   - Update .cpanel.yml with your actual username
-   - The deployment script will copy dist/* to public_html
-   - Or manually copy dist/ contents to public_html
+   Go to Supabase Dashboard > SQL Editor and run:
+   supabase/migrations/20260106132113_integrate_admin_with_supabase_auth.sql
 
-6. VERIFY DEPLOYMENT
-   - Visit your website
-   - Check admin login at: yourdomain.com/admin
-   - Admin credentials: From your database setup
+   This migration:
+   - Links admin accounts to Supabase Auth
+   - Fixes product creation/editing permissions
+   - Updates all RLS policies
 
-DATABASE:
----------
-✓ Database is already configured and running
-✓ All 7 migrations applied successfully
-✓ 1 admin account exists
-✓ RLS policies active on all tables
+5. ADMIN LOGIN REQUIREMENT
+   After deployment:
+   - Log out from admin panel if currently logged in
+   - Log back in with: admin@deeskinstore.com / admin123
+   - This creates the proper Supabase Auth session
+
+WHAT WAS FIXED:
+---------------
+✓ Admin authentication now uses Supabase Auth
+✓ Product creation works correctly
+✓ Product editing works correctly
+✓ Product deletion works correctly
+✓ All admin RLS policies properly recognize authenticated admins
+
+VERIFY DEPLOYMENT:
+------------------
+1. Visit: https://deeskinstore.com
+2. Go to admin: https://deeskinstore.com/admin
+3. Login with: admin@deeskinstore.com / admin123
+4. Navigate to Products section
+5. Try adding a new product - should work without errors!
+
+DATABASE STATUS:
+----------------
+✓ 8 migrations total (7 previous + 1 new auth fix)
+✓ Super admin account configured with Supabase Auth
+✓ All tables secured with RLS policies
+✓ Products, orders, reviews, users tables ready
 
 NOTES:
 ------
-- node_modules excluded (will be installed on server)
-- dist excluded (will be built on server)
-- Supabase credentials already configured
-- Need to add Paystack public key for payments
-- All images are properly loaded as binary files
-
-SUPPORT:
---------
-If you encounter issues:
-1. Check that Node.js is installed on your server
-2. Verify environment variables are set correctly
-3. Ensure .htaccess is in the public_html directory
-4. Check file permissions (755 for directories, 644 for files)
+- Files are pre-compiled and optimized for production
+- No npm install or build needed on server
+- Just extract and copy to public_html
+- Must apply the new migration to production database
+- Old admin sessions will not work - must log in again
