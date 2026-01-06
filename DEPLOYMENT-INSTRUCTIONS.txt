@@ -1,0 +1,74 @@
+DEESKINSTORE - DEPLOYMENT INSTRUCTIONS
+======================================
+
+DEPLOYMENT PACKAGE: deeskinstore-deployment-final.tar.gz (103KB)
+
+CONTENTS:
+---------
+✓ All source code (src/)
+✓ Public assets (logo, banner images)
+✓ Database migrations (supabase/migrations/)
+✓ Edge functions (supabase/functions/)
+✓ Configuration files
+✓ Package files (package.json, package-lock.json)
+✓ .cpanel.yml deployment script
+✓ .htaccess for SPA routing
+✓ .env.example template
+
+DEPLOYMENT STEPS:
+-----------------
+
+1. UPLOAD TO CPANEL
+   - Log in to your cPanel account
+   - Navigate to File Manager
+   - Upload deeskinstore-deployment-final.tar.gz to your home directory
+   - Extract the archive
+
+2. INSTALL DEPENDENCIES
+   - Open Terminal in cPanel
+   - Navigate to the project directory
+   - Run: npm install
+
+3. CONFIGURE ENVIRONMENT
+   - Copy .env.example to .env
+   - Update with your actual values:
+     * VITE_SUPABASE_URL (already configured)
+     * VITE_SUPABASE_ANON_KEY (already configured)
+     * VITE_PAYSTACK_PUBLIC_KEY (add your Paystack key)
+
+4. BUILD FOR PRODUCTION
+   - In Terminal, run: npm run build
+   - This creates the dist/ folder with production files
+
+5. DEPLOY TO PUBLIC_HTML
+   - Update .cpanel.yml with your actual username
+   - The deployment script will copy dist/* to public_html
+   - Or manually copy dist/ contents to public_html
+
+6. VERIFY DEPLOYMENT
+   - Visit your website
+   - Check admin login at: yourdomain.com/admin
+   - Admin credentials: From your database setup
+
+DATABASE:
+---------
+✓ Database is already configured and running
+✓ All 7 migrations applied successfully
+✓ 1 admin account exists
+✓ RLS policies active on all tables
+
+NOTES:
+------
+- node_modules excluded (will be installed on server)
+- dist excluded (will be built on server)
+- Supabase credentials already configured
+- Need to add Paystack public key for payments
+- All images are properly loaded as binary files
+
+SUPPORT:
+--------
+If you encounter issues:
+1. Check that Node.js is installed on your server
+2. Verify environment variables are set correctly
+3. Ensure .htaccess is in the public_html directory
+4. Check file permissions (755 for directories, 644 for files)
