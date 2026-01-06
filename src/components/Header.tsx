@@ -101,7 +101,7 @@ const Header: React.FC = () => {
           <div className="flex-shrink-0">
             <Link to="/" className="flex items-center">
               <img
-                src="/deeskinstore_logo-removebg-preview.png"
+                src="./deeskinstore_logo-removebg-preview.png"
                 alt="DeeSkinStore Logo"
                 className="h-12 w-auto hover:opacity-90 transition-opacity"
               />
