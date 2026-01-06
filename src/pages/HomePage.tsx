@@ -37,7 +37,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onProductClick }) => {
       {/* Hero Section */}
       <section
         className="relative text-white overflow-hidden bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: "url('/banner.png')" }}
+        style={{ backgroundImage: "url('./banner.png')" }}
       >
         <div className="absolute inset-0 bg-gradient-to-r from-[#0d0499]/90 via-[#0d0499]/70 to-[#c6f2f4]/50"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 lg:py-48">

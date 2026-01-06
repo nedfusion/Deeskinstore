@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   BarChart3,
@@ -18,12 +18,38 @@ import ProductManagement from './ProductManagement';
 import OrderManagement from './OrderManagement';
 import UserManagement from './UserManagement';
 import ReviewManagement from './ReviewManagement';
+import { dashboardService, DashboardStats, RecentOrder } from '../../services/dashboard';
 
 const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
+  const [loading, setLoading] = useState(true);
   const { state, logout, hasPermission } = useAdmin();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (activeTab === 'overview') {
+      loadDashboardData();
+    }
+  }, [activeTab]);
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      const [statsData, ordersData] = await Promise.all([
+        dashboardService.getStats(),
+        dashboardService.getRecentOrders(5),
+      ]);
+      setStats(statsData);
+      setRecentOrders(ordersData);
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -38,19 +64,19 @@ const AdminDashboard: React.FC = () => {
     { id: 'users', name: 'Admin Users', icon: Users, permission: 'users.view' },
   ].filter(item => !item.permission || hasPermission(item.permission));
 
-  const stats = [
-    { name: 'Total Revenue', value: '₦2,847,500', change: '+12.5%', icon: DollarSign, color: 'text-green-600' },
-    { name: 'Total Orders', value: '1,247', change: '+8.2%', icon: ShoppingCart, color: 'text-blue-600' },
-    { name: 'Total Products', value: '156', change: '+3.1%', icon: Package, color: 'text-purple-600' },
-    { name: 'Active Users', value: '8,429', change: '+15.3%', icon: Users, color: 'text-orange-600' },
-  ];
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: 'NGN'
+    }).format(amount);
+  };
 
-  const recentOrders = [
-    { id: '#12345', customer: 'Jane Doe', amount: '₦15,400', status: 'completed', date: '2024-01-15' },
-    { id: '#12346', customer: 'John Smith', amount: '₦8,200', status: 'processing', date: '2024-01-15' },
-    { id: '#12347', customer: 'Sarah Johnson', amount: '₦22,100', status: 'shipped', date: '2024-01-14' },
-    { id: '#12348', customer: 'Mike Wilson', amount: '₦12,800', status: 'pending', date: '2024-01-14' },
-  ];
+  const statsDisplay = stats ? [
+    { name: 'Total Revenue', value: formatCurrency(stats.totalRevenue), icon: DollarSign, color: 'text-green-600' },
+    { name: 'Total Orders', value: stats.totalOrders.toString(), icon: ShoppingCart, color: 'text-blue-600' },
+    { name: 'Total Products', value: stats.totalProducts.toString(), icon: Package, color: 'text-purple-600' },
+    { name: 'Active Users', value: stats.activeUsers.toString(), icon: Users, color: 'text-orange-600' },
+  ] : [];
 
   const renderContent = () => {
     switch (activeTab) {
@@ -65,93 +91,108 @@ const AdminDashboard: React.FC = () => {
       default:
         return (
           <div className="space-y-6">
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {stats.map((stat) => (
-                <div key={stat.name} className="bg-white rounded-lg shadow-sm p-6">
-                  <div className="flex items-center">
-                    <div className={`p-2 rounded-lg ${stat.color} bg-opacity-10`}>
-                      <stat.icon className={`h-6 w-6 ${stat.color}`} />
-                    </div>
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-gray-600">{stat.name}</p>
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0d0499]"></div>
+              </div>
+            ) : (
+              <>
+                {/* Stats Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {statsDisplay.map((stat) => (
+                    <div key={stat.name} className="bg-white rounded-lg shadow-sm p-6">
                       <div className="flex items-center">
-                        <p className="text-2xl font-semibold text-gray-900">{stat.value}</p>
-                        <span className={`ml-2 text-sm font-medium ${stat.color}`}>
-                          {stat.change}
-                        </span>
+                        <div className={`p-2 rounded-lg ${stat.color} bg-opacity-10`}>
+                          <stat.icon className={`h-6 w-6 ${stat.color}`} />
+                        </div>
+                        <div className="ml-4">
+                          <p className="text-sm font-medium text-gray-600">{stat.name}</p>
+                          <p className="text-2xl font-semibold text-gray-900">{stat.value}</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
 
-            {/* Recent Orders */}
-            <div className="bg-white rounded-lg shadow-sm">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900">Recent Orders</h3>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Order ID
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Customer
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Amount
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Date
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {recentOrders.map((order) => (
-                      <tr key={order.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {order.id}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {order.customer}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {order.amount}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                            order.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
-                            order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {order.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {order.date}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <button className="text-[#0d0499] hover:text-[#c6f2f4] transition-colors">
-                            <Eye className="h-4 w-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                {/* Recent Orders */}
+                <div className="bg-white rounded-lg shadow-sm">
+                  <div className="px-6 py-4 border-b border-gray-200">
+                    <h3 className="text-lg font-medium text-gray-900">Recent Orders</h3>
+                  </div>
+                  {recentOrders.length === 0 ? (
+                    <div className="px-6 py-12 text-center">
+                      <ShoppingCart className="mx-auto h-12 w-12 text-gray-400" />
+                      <h3 className="mt-2 text-sm font-medium text-gray-900">No orders yet</h3>
+                      <p className="mt-1 text-sm text-gray-500">Orders will appear here once customers start placing them.</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Order ID
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Customer
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Amount
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Status
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Date
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Actions
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {recentOrders.map((order) => (
+                            <tr key={order.id}>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                {order.id}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {order.customerName}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {formatCurrency(order.totalAmount)}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                  order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                                  order.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
+                                  order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
+                                  order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                  'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {order.status}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {order.createdAt}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <button
+                                  onClick={() => setActiveTab('orders')}
+                                  className="text-[#0d0499] hover:text-[#c6f2f4] transition-colors"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         );
     }
