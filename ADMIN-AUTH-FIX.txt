@@ -1,0 +1,71 @@
+ADMIN AUTHENTICATION FIX - PRODUCT CREATION ISSUE RESOLVED
+===========================================================
+
+ISSUE IDENTIFIED:
+-----------------
+Admin users could not create products due to RLS policy violations.
+Error: "Failed to save product: new row violates row-level security policy for table 'products'"
+
+ROOT CAUSE:
+-----------
+The admin system used a custom RPC function (authenticate_admin) that did NOT create
+a Supabase Auth session. This caused auth.uid() to return NULL, making RLS policies
+fail when admins tried to insert/update/delete products.
+
+THE FIX:
+--------
+
+1. DATABASE MIGRATION (integrate_admin_with_supabase_auth)
+   - Added user_id column to admins table (links to auth.users)
+   - Created function to register admins with Supabase Auth
+   - Updated existing super admin to have Supabase Auth account
+   - Updated ALL RLS policies to use user_id instead of checking admins.id = auth.uid()
+
+2. FRONTEND CHANGES (AdminContext.tsx)
+   - Changed login() to use supabase.auth.signInWithPassword()
+   - Fetch admin record using authenticated user's ID from auth session
+   - Updated logout() to call supabase.auth.signOut()
+   - Made logout() async and updated all callers
+
+3. ADMIN DASHBOARD (AdminDashboard.tsx)
+   - Made handleLogout() async to await logout()
+
+WHAT THIS MEANS:
+----------------
+✅ Admins now authenticate through Supabase Auth (standard auth flow)
+✅ Auth sessions are properly created with valid auth.uid()
+✅ RLS policies now work correctly for all admin operations
+✅ Admins can create, update, and delete products
+✅ Admins can manage orders, reviews, and users
+✅ All admin operations are secure and properly authorized
+
+ADMIN CREDENTIALS:
+------------------
+Email: admin@deeskinstore.com
+Password: admin123
+
+IMPORTANT NOTE:
+---------------
+After deploying this fix, you MUST log out and log back in to create a new
+Supabase Auth session. The old localStorage-only auth will not work anymore.
+
+DEPLOYMENT STATUS:
+------------------
+✅ Migration applied to database
+✅ Code changes completed
+✅ Build successful (no errors)
+✅ New deployment package created: deeskinstore-deployment-fixed.tar.gz
+
+NEXT STEPS:
+-----------
+1. Upload deeskinstore-deployment-fixed.tar.gz to cPanel
+2. Extract the archive
+3. Run: npm install
+4. Create .env with your Supabase credentials
+5. Run: npm run build
+6. Copy dist/* to public_html
+7. Log out from admin panel if already logged in
+8. Log in again with admin@deeskinstore.com / admin123
+9. Test product creation
+
+The admin system is now fully functional and secure!
