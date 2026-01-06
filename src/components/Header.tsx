@@ -100,11 +100,9 @@ const Header: React.FC = () => {
         <div className="flex justify-between items-center h-16">
           <div className="flex-shrink-0">
             <Link to="/" className="flex items-center">
-              <img
-                src="./deeskinstore_logo-removebg-preview.png"
-                alt="DeeSkinStore"
-                className="h-24 w-auto hover:opacity-80 transition-opacity"
-              />
+              <div className="bg-gradient-to-r from-[#0d0499] to-[#0a7d7e] text-white px-4 py-3 rounded-lg hover:opacity-90 transition-opacity">
+                <span className="text-2xl font-bold">DeeSkinStore</span>
+              </div>
             </Link>
           </div>
 
