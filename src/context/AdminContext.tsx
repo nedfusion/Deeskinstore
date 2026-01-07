@@ -72,26 +72,16 @@ export const AdminProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const login = async (email: string, password: string) => {
     setState(prev => ({ ...prev, isLoading: true }));
     try {
-      // Sign in with Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      // Use the custom authenticate_admin function
+      const { data, error } = await supabase.rpc('authenticate_admin', {
+        p_email: email,
+        p_password: password,
       });
 
-      if (authError) throw new Error('Invalid email or password');
-      if (!authData.user) throw new Error('Invalid email or password');
+      if (error) throw new Error('Invalid email or password');
+      if (!data || data.length === 0) throw new Error('Invalid email or password');
 
-      // Fetch admin record using the authenticated user's ID
-      const { data: adminData, error: adminError } = await supabase
-        .from('admins')
-        .select('*')
-        .eq('user_id', authData.user.id)
-        .eq('is_active', true)
-        .maybeSingle();
-
-      if (adminError) throw new Error('Failed to fetch admin data');
-      if (!adminData) throw new Error('Admin account not found or inactive');
-
+      const adminData = data[0];
       const permissions = rolePermissions[adminData.role as keyof typeof rolePermissions] || [];
       const [firstName, ...lastNameParts] = adminData.full_name.split(' ');
 
@@ -103,7 +93,7 @@ export const AdminProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         role: adminData.role,
         permissions,
         isActive: adminData.is_active,
-        createdAt: new Date(adminData.created_at),
+        createdAt: new Date(),
         lastLogin: new Date(),
       };
 
@@ -121,7 +111,6 @@ export const AdminProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
     localStorage.removeItem('adminUser');
     setState({
       currentAdmin: null,

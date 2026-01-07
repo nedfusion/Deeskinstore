@@ -17,7 +17,6 @@ import BlogPage from './pages/BlogPage';
 import AboutPage from './pages/AboutPage';
 import FAQPage from './pages/FAQPage';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
-import AdminSetupPage from './pages/admin/AdminSetupPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 
 function App() {
@@ -29,7 +28,6 @@ function App() {
             <Router>
             <Routes>
               {/* Admin Routes - No Header/Footer */}
-              <Route path="/admin/setup" element={<AdminSetupPage />} />
               <Route path="/admin" element={<AdminLoginPage />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
 
